@@ -1,0 +1,45 @@
+:root {
+    --primary-color: #6366f1;
+    --success-color: #10b981;
+    --bg-color: #f9fafb;
+    --text-dark: #1f2937;
+}
+
+body.dark {
+    --bg-color: #111827;
+    --text-dark: #f9fafb;
+}
+
+body {
+    font-family: Arial;
+    background: var(--bg-color);
+    color: var(--text-dark);
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+}
+
+.input-section {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.daily-habit-item {
+    background: white;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 6px;
+    background: #ddd;
+    border-radius: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--success-color);
+}
