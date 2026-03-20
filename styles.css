@@ -1,7 +1,7 @@
 
 /* Settings Bar */
 .settings-bar {
-    position: fixed;
+    top: var(--menu-height);
     top: 0;
     left: 0;
     right: 0;
