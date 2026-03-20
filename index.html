@@ -1,63 +1,291 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Habit Tracker</title>
-<link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
+    <div class="container">
+        <!-- Language & Timezone Selector -->
+        <div class="settings-bar">
+            <div class="settings-group">
+                <label for="languageSelect">🌐 Language:</label>
+                <select id="languageSelect" class="settings-select">
+                    <option value="eng">English</option>
+                    <option value="kor">한국어 (Korean)</option>
+                    <option value="jap">日本語 (Japanese)</option>
+                    <option value="chi">中文 (Chinese)</option>
+                    <option value="vie">Tiếng Việt (Vietnamese)</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="timezoneSelect">⏰ Timezone:</label>
+                <select id="timezoneSelect" class="settings-select"></select>
+            </div>
+            <div class="settings-group">
+                <button id="autoDetectBtn" class="auto-detect-btn" title="Auto-detect location">📍 Auto-Detect</button>
+            </div>
+        </div>
 
-<div class="settings-bar">
-    <select id="languageSelect"></select>
+        <header>
+            <h1 id="headerTitle">📊 Habit Tracker</h1>
+            <p class="subtitle" id="headerSubtitle">Build better habits, one day at a time</p>
+            <div class="header-actions">
+                <button id="saveBtn" class="save-btn" title="Save all changes" data-i18n="save">💾 Save</button>
+                <button id="exportBtn" class="export-btn" title="Export as JSON" data-i18n="export">📥 Export</button>
+                <button id="importBtn" class="import-btn" title="Import from JSON" data-i18n="import">📤 Import</button>
+                <button id="resetBtn" class="reset-btn" title="Reset all data" data-i18n="reset">🔄 Reset</button>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
+            </div>
+        </header>
 
-    <select id="timezoneSelect">
-        <option value="Asia/Ho_Chi_Minh">VN</option>
-    </select>
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="habitInput" 
+                class="habit-input"
+                data-i18n="habitInputPlaceholder"
+            >
+            <select id="categorySelect" class="category-select">
+                <option value="health" data-i18n="categoryHealth">Health</option>
+                <option value="learning" data-i18n="categoryLearning">Learning</option>
+                <option value="productivity" data-i18n="categoryProductivity">Productivity</option>
+                <option value="wellness" data-i18n="categoryWellness">Wellness</option>
+                <option value="other" data-i18n="categoryOther">Other</option>
+            </select>
+            <button id="addBtn" class="add-btn" data-i18n="addHabit">+ Add Habit</button>
+        </div>
 
-    <button id="autoDetectBtn">Auto Detect</button>
+        <div class="stats-section">
+            <div class="stat-card">
+                <h3 data-i18n="totalHabits">Total Habits</h3>
+                <p id="totalHabits" class="stat-number">0</p>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="completedToday">Completed Today</h3>
+                <p id="completedToday" class="stat-number">0</p>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="currentStreak">Current Streak</h3>
+                <p id="currentStreak" class="stat-number">0</p>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="weeklyAverage">Weekly Average</h3>
+                <p id="weeklyAverage" class="stat-number">0%</p>
+            </div>
+        </div>
 
-    <label>🌙</label>
-    <input type="checkbox" id="darkModeToggle">
-</div>
+        <!-- Routine View Menu -->
+        <div class="routine-menu">
+            <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
+            <button class="routine-btn" data-view="weekly" data-i18n="weekly">📅 Weekly</button>
+            <button class="routine-btn" data-view="monthly" data-i18n="monthly">📆 Monthly</button>
+        </div>
 
-<div class="container">
+        <!-- Charts Section -->
+        <div class="charts-container" id="chartsSection">
+            <div class="chart-section">
+                <div class="chart-header">
+                    <h2 data-i18n="progressAnalytics">Progress Analytics (Line Chart)</h2>
+                    <button class="expand-btn" data-chart="line" title="Expand">⛶</button>
+                </div>
+                <div class="chart-controls">
+                    <button class="chart-btn active" data-range="7">7 Days</button>
+                    <button class="chart-btn" data-range="14">14 Days</button>
+                    <button class="chart-btn" data-range="30">30 Days</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
 
-<header>
-    <h1>Habit Tracker</h1>
-</header>
+            <div class="chart-section">
+                <div class="chart-header">
+                    <h2 data-i18n="todayCompletion">Today's Completion (Pie Chart)</h2>
+                    <button class="expand-btn" data-chart="pie" title="Expand">⛶</button>
+                </div>
+                <div class="chart-container-pie">
+                    <canvas id="completionChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item completed" data-i18n="completed">✓ Completed</span>
+                    <span class="legend-item pending" data-i18n="pending">◯ Pending</span>
+                </div>
+            </div>
+        </div>
 
-<div class="input-section">
-    <input id="habitInput" placeholder="New habit">
-    <select id="categorySelect">
-        <option value="health">Health</option>
-        <option value="learning">Learning</option>
-        <option value="productivity">Productivity</option>
-    </select>
+        <!-- Daily Routine View -->
+        <div class="routine-view" id="dailyView">
+            <div class="routine-section">
+                <div class="routine-header">
+                    <h2 data-i18n="todayRoutine">📋 Today's Routine</h2>
+                    <span id="todayDate" class="date-display"></span>
+                </div>
+                <div class="daily-tracker">
+                    <div id="dailyGrid" class="daily-grid"></div>
+                </div>
+            </div>
+        </div>
 
-    <input type="number" id="goalInput" placeholder="Goal">
-    <input type="time" id="reminderInput">
+        <!-- Weekly Routine View -->
+        <div class="routine-view hidden" id="weeklyView">
+            <div class="routine-section">
+                <div class="routine-header">
+                    <h2 data-i18n="weeklyRoutine">📅 Weekly Routine</h2>
+                    <button class="expand-btn" data-chart="weekly" title="Expand">⛶</button>
+                </div>
+                <div class="weekly-tracker">
+                    <div id="weeklyGrid" class="weekly-grid"></div>
+                </div>
+            </div>
+        </div>
 
-    <button id="addBtn">Add</button>
-</div>
+        <!-- Monthly Routine View -->
+        <div class="routine-view hidden" id="monthlyView">
+            <div class="routine-section">
+                <div class="routine-header">
+                    <h2 data-i18n="monthlyRoutine">📆 Monthly Routine</h2>
+                    <button class="expand-btn" data-chart="monthly" title="Expand">⛶</button>
+                </div>
+                <div class="monthly-tracker">
+                    <div class="month-nav">
+                        <button id="prevMonth" class="month-btn" data-i18n="previous">← Previous</button>
+                        <span id="currentMonth" class="current-month"></span>
+                        <button id="nextMonth" class="month-btn" data-i18n="next">Next →</button>
+                    </div>
+                    <div id="monthlyGrid" class="monthly-grid"></div>
+                </div>
+            </div>
+        </div>
 
-<div id="dailyGrid"></div>
+        <!-- Quick Actions Section -->
+        <div class="reminders-section">
+            <h2 data-i18n="quickActions">⏰ Quick Actions</h2>
+            <div class="quick-actions">
+                <button id="completeAllBtn" class="quick-action-btn primary" data-i18n="completeAll">✓ Complete All Today</button>
+                <button id="resetTodayBtn" class="quick-action-btn secondary" data-i18n="resetToday">Reset Today's Progress</button>
+                <button id="sortBtn" class="quick-action-btn tertiary" data-i18n="sortStreak">Sort by Streak</button>
+            </div>
+        </div>
 
-</div>
+        <!-- Search/Filter Section -->
+        <div class="filter-section">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input"
+                data-i18n="searchHabits"
+            >
+            <select id="categoryFilter" class="category-filter">
+                <option value="all" data-i18n="allCategories">All Categories</option>
+                <option value="health" data-i18n="categoryHealth">Health</option>
+                <option value="learning" data-i18n="categoryLearning">Learning</option>
+                <option value="productivity" data-i18n="categoryProductivity">Productivity</option>
+                <option value="wellness" data-i18n="categoryWellness">Wellness</option>
+                <option value="other" data-i18n="categoryOther">Other</option>
+            </select>
+        </div>
 
-<!-- DAY MODAL -->
-<div id="dayDetailsModal" class="modal">
-    <div class="modal-content">
-        <h2 id="detailsDate"></h2>
+        <div class="habits-section">
+            <h2 data-i18n="yourHabits">Your Habits</h2>
+            <div id="habitsList" class="habits-list">
+                <p class="empty-message" data-i18n="noHabits">No habits yet. Add one to get started!</p>
+            </div>
+        </div>
 
-        <textarea id="dayNote"></textarea>
-        <button id="saveNoteBtn">Save Note</button>
+        <!-- Statistics Section -->
+        <div class="insights-section">
+            <h2 data-i18n="insights">📈 Insights</h2>
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <h3 data-i18n="mostConsistent">Most Consistent</h3>
+                    <p id="mostConsistent" class="insight-value">-</p>
+                </div>
+                <div class="insight-card">
+                    <h3 data-i18n="totalCompletions">Total Completions</h3>
+                    <p id="totalCompletions" class="insight-value">0</p>
+                </div>
+                <div class="insight-card">
+                    <h3 data-i18n="bestDay">Best Day</h3>
+                    <p id="bestDay" class="insight-value">-</p>
+                </div>
+                <div class="insight-card">
+                    <h3 data-i18n="successRate">Success Rate</h3>
+                    <p id="successRate" class="insight-value">0%</p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script src="languages.js"></script>
-<script src="script.js"></script>
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
 
+    <!-- Floating Action Button -->
+    <button id="helpBtn" class="fab" title="Help">?</button>
+
+    <!-- Day Details Modal -->
+    <div id="dayDetailsModal" class="modal">
+        <div class="modal-content day-details-modal">
+            <span class="close">&times;</span>
+            <h2 id="detailsDate"></h2>
+            <div class="day-details-content">
+                <div class="details-stats">
+                    <div class="detail-stat">
+                        <span class="stat-label" data-i18n="completed">Completed</span>
+                        <span id="detailsCompleted" class="stat-value">0</span>
+                    </div>
+                    <div class="detail-stat">
+                        <span class="stat-label" data-i18n="total">Total</span>
+                        <span id="detailsTotal" class="stat-value">0</span>
+                    </div>
+                    <div class="detail-stat">
+                        <span class="stat-label" data-i18n="completionRate">Completion Rate</span>
+                        <span id="detailsRate" class="stat-value">0%</span>
+                    </div>
+                </div>
+                <div id="dayHabitsList" class="day-habits-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expanded Chart Modal -->
+    <div id="expandedModal" class="modal">
+        <div class="expanded-modal-content">
+            <div class="expanded-header">
+                <h2 id="expandedTitle">Chart</h2>
+                <button class="close-expanded">&times;</button>
+            </div>
+            <div id="expandedChartContainer" class="expanded-chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 data-i18n="howToUse">📖 How to Use Habit Tracker</h2>
+            <div class="help-content">
+                <h3 data-i18n="gettingStarted">Getting Started</h3>
+                <p data-i18n="step1">1. Enter a habit name and select a category</p>
+                <p data-i18n="step2">2. Click "+ Add Habit" to create it</p>
+                <p data-i18n="step3">3. Mark habits complete each day by clicking "Mark Done"</p>
+
+                <h3 data-i18n="features">Features</h3>
+                <p><strong data-i18n="routineViews">Routine Views:</strong> <span data-i18n="routineViewsDesc">Switch between Daily, Weekly, and Monthly views</span></p>
+                <p><strong data-i18n="dayDetails">Day Details:</strong> <span data-i18n="dayDetailsDesc">Click any day to see detailed information</span></p>
+                <p><strong data-i18n="save">Save:</strong> <span data-i18n="saveDesc">Manually save your data</span></p>
+
+                <h3 data-i18n="tips">Tips</h3>
+                <p data-i18n="tip1">✓ Complete all habits to build momentum</p>
+                <p data-i18n="tip2">✓ Keep your streak going every day</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="languages.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
