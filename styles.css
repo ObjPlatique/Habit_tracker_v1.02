@@ -297,7 +297,8 @@ header h1 {
 .routine-menu {
     display: flex;
     gap: 15px;
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: center;
     flex-wrap: wrap;
     padding: 20px;
     background: white;
@@ -1580,8 +1581,9 @@ body.sidebar-collapsed .quick-sidebar {
 }
 
 .exp-menu {
-    flex: 1 1 100%;
-    min-width: 240px;
+    flex: 0 1 280px;
+    min-width: 230px;
+    max-width: 300px;
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 10px;
@@ -1602,6 +1604,58 @@ body.sidebar-collapsed .quick-sidebar {
     height: 10px;
     border-radius: 999px;
     overflow: hidden;
+}
+
+.exp-reward-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.freeze-count {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.use-freeze-btn {
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.copilot-card {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.copilot-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.copilot-refresh-btn {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+.copilot-suggestions {
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    font-size: 0.9rem;
 }
 
 .exp-fill {
