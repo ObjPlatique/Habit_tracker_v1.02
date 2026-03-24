@@ -2,98 +2,23 @@
 // Initialize Language Manager
 const langManager = new LanguageManager();
 
-// Geolocation and Timezone Detection
-function detectUserLocation() {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                getTimezoneFromCoords(latitude, longitude);
-            },
-            (error) => {
-                console.log('Geolocation error:', error.message);
-                showToast('Unable to detect location. Please select manually.', 'info');
-            }
-        );
-    } else {
-        showToast('Geolocation not supported. Please select timezone manually.', 'info');
-    }
-}
-
-async function getTimezoneFromCoords(lat, lon) {
-    try {
-        const response = await fetch(
-            `https://nominatim.openmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-        );
-        const data = await response.json();
-        
-        // Try to detect timezone from coordinates
-        const timezoneMap = {
-            'Seoul': 'Asia/Seoul',
-            'Tokyo': 'Asia/Tokyo',
-            'Shanghai': 'Asia/Shanghai',
-            'Ho Chi Minh': 'Asia/Ho_Chi_Minh',
-            'London': 'Europe/London',
-            'Paris': 'Europe/Paris',
-            'New York': 'America/New_York',
-            'Los Angeles': 'America/Los_Angeles',
-            'Sydney': 'Australia/Sydney',
-        };
-
-        for (const [city, tz] of Object.entries(timezoneMap)) {
-            if (data.address && Object.values(data.address).some(v => v && v.includes(city))) {
-                setTimezone(tz);
-                showToast(`Location detected: ${tz}`, 'success');
-                return;
-            }
-        }
-
-        showToast('Could not auto-detect timezone. Please select manually.', 'info');
-    } catch (error) {
-        console.log('Timezone detection error:', error);
-        showToast('Error detecting location. Please select timezone manually.', 'error');
-    }
-}
-
-function setTimezone(tz) {
-    document.getElementById('timezoneSelect').value = tz;
+// Automatic timezone detection from browser locale/location
+function detectUserTimezone() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     localStorage.setItem('timezone', tz);
+    return tz;
 }
 
 // Setup event listeners for settings
 document.addEventListener('DOMContentLoaded', () => {
-    // Language selector
-    document.getElementById('languageSelect').value = langManager.currentLanguage;
+    detectUserTimezone();
+
     document.getElementById('sidebarLanguageSelect').value = langManager.currentLanguage;
     langManager.updatePageLanguage();
 
-    document.getElementById('languageSelect').addEventListener('change', (e) => {
-        langManager.setLanguage(e.target.value);
-        document.getElementById('sidebarLanguageSelect').value = e.target.value;
-    });
-
     document.getElementById('sidebarLanguageSelect').addEventListener('change', (e) => {
         langManager.setLanguage(e.target.value);
-        document.getElementById('languageSelect').value = e.target.value;
     });
-
-    // Timezone selector
-    const savedTimezone = localStorage.getItem('timezone');
-    if (savedTimezone) {
-        document.getElementById('timezoneSelect').value = savedTimezone;
-    }
-
-    document.getElementById('timezoneSelect').addEventListener('change', (e) => {
-        setTimezone(e.target.value);
-    });
-
-    // Auto-detect button
-    document.getElementById('autoDetectBtn').addEventListener('click', detectUserLocation);
-
-    // Set initial timezone if not set
-    if (!savedTimezone) {
-        detectUserLocation();
-    }
 
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.body.classList.toggle('dark-theme', savedTheme === 'dark');
@@ -115,6 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
 class HabitTracker {
     
     constructor() {
+        this.freezeCharges = 0;
+        this.maxFreezeCharges = 2;
+        this.lastAwardedLevel = 1;
+        this.frozenDates = [];
         this.habits = this.loadHabits();
         this.lineChart = null;
         this.pieChart = null;
@@ -135,6 +64,7 @@ class HabitTracker {
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
         this.setupAutoSave();
+        this.renderCopilotSuggestions();
     }
 
     initializeEventListeners() {
@@ -153,6 +83,8 @@ class HabitTracker {
         document.getElementById('sidebarResetBtn').addEventListener('click', () => this.resetAllData());
         document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
         document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebar());
+        document.getElementById('useFreezeBtn').addEventListener('click', () => this.useFreezeForToday());
+        document.getElementById('refreshCopilotBtn').addEventListener('click', () => this.renderCopilotSuggestions());
 
         // Routine view menu
         document.querySelectorAll('.routine-btn').forEach(btn => {
@@ -830,7 +762,8 @@ class HabitTracker {
         this.updateCharts();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
-        
+        this.renderCopilotSuggestions();
+
         input.value = '';
         input.focus();
         this.showToast(`✅ Habit "${habitName}" added successfully!`, 'success');
@@ -847,6 +780,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
+            this.renderCopilotSuggestions();
             this.showToast('Habit deleted', 'success');
         }
     }
@@ -874,6 +808,7 @@ class HabitTracker {
         this.updateCharts();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
+        this.renderCopilotSuggestions();
     }
 
     completeAllToday() {
@@ -896,6 +831,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
+            this.renderCopilotSuggestions();
             this.showToast(`✅ Completed ${count} habits!`, 'success');
         } else {
             this.showToast('All habits already completed today!', 'info');
@@ -920,6 +856,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
+            this.renderCopilotSuggestions();
             this.showToast("Today's progress reset", 'success');
         }
     }
@@ -949,19 +886,20 @@ class HabitTracker {
     calculateStreak(habit) {
         if (habit.completedDates.length === 0) return 0;
 
-        const sortedDates = habit.completedDates.sort().reverse();
+        const completedSet = new Set(habit.completedDates);
         let streak = 0;
         let currentDate = new Date();
 
-        for (let i = 0; i < sortedDates.length; i++) {
-            const checkDate = new Date(sortedDates[i]);
-            const expectedDate = new Date(currentDate);
-            expectedDate.setDate(expectedDate.getDate() - i);
+        while (true) {
+            const dateStr = this.getDateString(currentDate);
+            const done = completedSet.has(dateStr);
+            const frozen = this.frozenDates.includes(dateStr);
 
-            if (this.getDateString(checkDate) !== this.getDateString(expectedDate)) {
+            if (!done && !frozen) {
                 break;
             }
             streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
         }
 
         return streak;
@@ -1052,7 +990,8 @@ class HabitTracker {
         while (true) {
             const dateStr = this.getDateString(cursor);
             const allCompleted = this.habits.every(habit => habit.completedDates.includes(dateStr));
-            if (!allCompleted) break;
+            const isFrozen = this.frozenDates.includes(dateStr);
+            if (!allCompleted && !isFrozen) break;
             streak++;
             cursor.setDate(cursor.getDate() - 1);
         }
@@ -1063,7 +1002,8 @@ class HabitTracker {
     updateExpBar() {
         const expFill = document.getElementById('expFill');
         const expValue = document.getElementById('expValue');
-        if (!expFill || !expValue) return;
+        const freezeCount = document.getElementById('freezeCount');
+        if (!expFill || !expValue || !freezeCount) return;
 
         const totalCompletions = this.habits.reduce((sum, h) => sum + h.completedDates.length, 0);
         this.currentExp = totalCompletions * 10;
@@ -1073,6 +1013,50 @@ class HabitTracker {
 
         expFill.style.width = `${percent}%`;
         expValue.textContent = `Lv.${level} • ${levelExp} / ${this.expLevelSize}`;
+        this.grantLevelRewards(level);
+        freezeCount.textContent = `🧊 Freeze: ${this.freezeCharges}/${this.maxFreezeCharges}`;
+    }
+
+    grantLevelRewards(level) {
+        if (level <= this.lastAwardedLevel) return;
+
+        const levelsGained = level - this.lastAwardedLevel;
+        const nextCharges = Math.min(this.maxFreezeCharges, this.freezeCharges + levelsGained);
+        const gained = nextCharges - this.freezeCharges;
+
+        this.freezeCharges = nextCharges;
+        this.lastAwardedLevel = level;
+
+        if (gained > 0) {
+            this.showToast(`🎉 Level up! +${gained} Freeze charge`, 'success');
+        }
+    }
+
+    useFreezeForToday() {
+        const today = this.getDateString(new Date());
+        if (this.freezeCharges <= 0) {
+            this.showToast('No Freeze charges available yet.', 'info');
+            return;
+        }
+
+        if (this.frozenDates.includes(today)) {
+            this.showToast('Freeze is already active for today.', 'info');
+            return;
+        }
+
+        this.freezeCharges -= 1;
+        this.frozenDates.push(today);
+
+        this.habits.forEach((habit) => {
+            habit.streak = this.calculateStreak(habit);
+        });
+
+        this.saveHabits();
+        this.updateStats();
+        this.renderHabits();
+        this.renderDailyView();
+        this.renderCopilotSuggestions();
+        this.showToast('🧊 Freeze activated. Today will not break your streak.', 'success');
     }
 
     calculateWeeklyAverage() {
@@ -1225,6 +1209,7 @@ class HabitTracker {
                 this.updateCharts();
                 this.renderWeeklyTracker();
                 this.renderMonthlyTracker();
+                this.renderCopilotSuggestions();
                 this.showToast('🗑️ All data has been reset!', 'success');
             }
         }
@@ -1238,11 +1223,17 @@ class HabitTracker {
 
     saveHabits() {
         localStorage.setItem('habits', JSON.stringify(this.habits));
+        localStorage.setItem('freezeCharges', String(this.freezeCharges));
+        localStorage.setItem('lastAwardedLevel', String(this.lastAwardedLevel));
+        localStorage.setItem('frozenDates', JSON.stringify(this.frozenDates));
         localStorage.setItem('lastSaveTime', new Date().toISOString());
     }
 
     loadHabits() {
         const stored = localStorage.getItem('habits');
+        this.freezeCharges = parseInt(localStorage.getItem('freezeCharges') || '0', 10);
+        this.lastAwardedLevel = parseInt(localStorage.getItem('lastAwardedLevel') || '1', 10);
+        this.frozenDates = JSON.parse(localStorage.getItem('frozenDates') || '[]');
         return stored ? JSON.parse(stored) : [];
     }
 
@@ -1264,6 +1255,26 @@ class HabitTracker {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    renderCopilotSuggestions() {
+        const list = document.getElementById('copilotSuggestions');
+        if (!list) return;
+
+        const now = new Date();
+        const hour = now.getHours();
+        const today = this.getDateString(now);
+        const completedToday = this.habits.filter(h => h.completedDates.includes(today)).length;
+        const pending = Math.max(0, this.habits.length - completedToday);
+        const healthHabits = this.habits.filter(h => h.category === 'health').length;
+
+        const suggestions = [];
+        suggestions.push(hour < 12 ? 'Buổi sáng: hoàn thành 1 thói quen khó nhất trước 11h.' : 'Buổi chiều/tối: chọn 1 thói quen nhẹ để giữ đà.');
+        suggestions.push(`Hôm nay bạn đã hoàn thành ${completedToday}/${this.habits.length} thói quen. Ưu tiên ${pending} thói quen còn lại.`);
+        suggestions.push(healthHabits === 0 ? 'Nên thêm 1 thói quen sức khỏe ngắn: uống nước hoặc đi bộ 10 phút.' : 'Duy trì thói quen sức khỏe để tăng năng lượng lâu dài.');
+        suggestions.push(this.freezeCharges > 0 ? `Bạn có ${this.freezeCharges} Freeze charge. Chỉ dùng khi thật sự bận.` : 'Lên level để nhận Freeze charge bảo vệ chuỗi.');
+
+        list.innerHTML = suggestions.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
     }
 }
 

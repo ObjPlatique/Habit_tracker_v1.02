@@ -11,6 +11,19 @@
     <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Toggle sidebar">☰</button>
     <aside id="quickSidebar" class="quick-sidebar">
         <div class="sidebar-header">
+            <h2>🤖 AI Copilot</h2>
+            <p>Daily guidance & better habit suggestions</p>
+        </div>
+        <div class="copilot-card">
+            <div class="copilot-title-row">
+                <h3>Today's Focus</h3>
+                <button id="refreshCopilotBtn" class="copilot-refresh-btn">Refresh</button>
+            </div>
+            <ul id="copilotSuggestions" class="copilot-suggestions">
+                <li>Start by adding one small habit for today.</li>
+            </ul>
+        </div>
+        <div class="sidebar-header">
             <h2 data-i18n="quickAccess">⚡ Quick Access</h2>
             <p data-i18n="topConsistentHabits">Top consistent habits</p>
         </div>
@@ -38,27 +51,6 @@
     </aside>
     <div class="page-content">
     <div class="container">
-        <!-- Language & Timezone Selector -->
-        <div class="settings-bar">
-            <div class="settings-group">
-                <label for="languageSelect">🌐 Language:</label>
-                <select id="languageSelect" class="settings-select">
-                    <option value="eng">English</option>
-                    <option value="kor">한국어 (Korean)</option>
-                    <option value="jap">日本語 (Japanese)</option>
-                    <option value="chi">中文 (Chinese)</option>
-                    <option value="vie">Tiếng Việt (Vietnamese)</option>
-                </select>
-            </div>
-            <div class="settings-group">
-                <label for="timezoneSelect">⏰ Timezone:</label>
-                <select id="timezoneSelect" class="settings-select"></select>
-            </div>
-            <div class="settings-group">
-                <button id="autoDetectBtn" class="auto-detect-btn" title="Auto-detect location">📍 Auto-Detect</button>
-            </div>
-        </div>
-
         <header>
             <h1 id="headerTitle">📊 Habit Tracker</h1>
             <p class="subtitle" id="headerSubtitle">Build better habits, one day at a time</p>
@@ -116,6 +108,10 @@
                 </div>
                 <div class="exp-track">
                     <div id="expFill" class="exp-fill"></div>
+                </div>
+                <div class="exp-reward-row">
+                    <span id="freezeCount" class="freeze-count">🧊 Freeze: 0/2</span>
+                    <button id="useFreezeBtn" class="use-freeze-btn">Use Freeze</button>
                 </div>
             </div>
             <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
