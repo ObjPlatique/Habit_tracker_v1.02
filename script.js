@@ -64,10 +64,17 @@ function setTimezone(tz) {
 document.addEventListener('DOMContentLoaded', () => {
     // Language selector
     document.getElementById('languageSelect').value = langManager.currentLanguage;
+    document.getElementById('sidebarLanguageSelect').value = langManager.currentLanguage;
     langManager.updatePageLanguage();
 
     document.getElementById('languageSelect').addEventListener('change', (e) => {
         langManager.setLanguage(e.target.value);
+        document.getElementById('sidebarLanguageSelect').value = e.target.value;
+    });
+
+    document.getElementById('sidebarLanguageSelect').addEventListener('change', (e) => {
+        langManager.setLanguage(e.target.value);
+        document.getElementById('languageSelect').value = e.target.value;
     });
 
     // Timezone selector
@@ -87,6 +94,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!savedTimezone) {
         detectUserLocation();
     }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.classList.toggle('dark-theme', savedTheme === 'dark');
+    document.getElementById('themeToggle').checked = savedTheme === 'dark';
+
+    document.getElementById('themeToggle').addEventListener('change', (event) => {
+        const isDark = event.target.checked;
+        document.body.classList.toggle('dark-theme', isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarState !== null) {
+        document.body.classList.toggle('sidebar-collapsed', savedSidebarState === 'true');
+    } else if (window.innerWidth <= 992) {
+        document.body.classList.add('sidebar-collapsed');
+    }
 });
 class HabitTracker {
     
@@ -94,6 +118,8 @@ class HabitTracker {
         this.habits = this.loadHabits();
         this.lineChart = null;
         this.pieChart = null;
+        this.currentExp = 0;
+        this.expLevelSize = 100;
         this.currentChartRange = 7;
         this.currentMonth = new Date();
         this.currentView = 'daily';
@@ -103,6 +129,8 @@ class HabitTracker {
         this.renderHabits();
         this.updateStats();
         this.initializeCharts();
+        this.renderTopHabitsSidebar();
+        this.updateExpBar();
         this.renderDailyView();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
@@ -122,7 +150,9 @@ class HabitTracker {
             document.getElementById('fileInput').click();
         });
         document.getElementById('resetBtn').addEventListener('click', () => this.resetAllData());
+        document.getElementById('sidebarResetBtn').addEventListener('click', () => this.resetAllData());
         document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
+        document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebar());
 
         // Routine view menu
         document.querySelectorAll('.routine-btn').forEach(btn => {
@@ -221,6 +251,57 @@ class HabitTracker {
         document.getElementById(`${view}View`).classList.remove('hidden');
 
         this.showToast(`Switched to ${view.charAt(0).toUpperCase() + view.slice(1)} view`, 'info');
+    }
+
+    toggleSidebar() {
+        document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', String(document.body.classList.contains('sidebar-collapsed')));
+    }
+
+    getConsistencyScore(habit) {
+        const today = new Date();
+        const lookbackDays = 14;
+        let completedDays = 0;
+
+        for (let i = 0; i < lookbackDays; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            if (habit.completedDates.includes(this.getDateString(date))) {
+                completedDays++;
+            }
+        }
+
+        return Math.round((completedDays / lookbackDays) * 100);
+    }
+
+    renderTopHabitsSidebar() {
+        const topHabitsList = document.getElementById('topHabitsList');
+        if (!topHabitsList) return;
+
+        if (this.habits.length === 0) {
+            topHabitsList.innerHTML = `<p class="empty-message">${langManager.get('noHabits')}</p>`;
+            return;
+        }
+
+        const topHabits = [...this.habits]
+            .sort((a, b) => this.getConsistencyScore(b) - this.getConsistencyScore(a))
+            .slice(0, 5);
+
+        topHabitsList.innerHTML = topHabits.map(habit => `
+            <button class="top-habit-item" onclick="app.focusHabit(${habit.id})">
+                <span class="top-habit-name">${this.escapeHtml(habit.name)}</span>
+                <span class="top-habit-score">${this.getConsistencyScore(habit)}%</span>
+            </button>
+        `).join('');
+    }
+
+    focusHabit(id) {
+        const habitEl = document.querySelector(`.habit-item[data-habit-id="${id}"]`);
+        if (!habitEl) return;
+
+        habitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        habitEl.classList.add('habit-highlight');
+        setTimeout(() => habitEl.classList.remove('habit-highlight'), 1200);
     }
 
     // Daily View
@@ -918,7 +999,7 @@ class HabitTracker {
             const progress = this.getProgressPercentage(habit);
             
             return `
-                <div class="habit-item ${isCompleted ? 'completed' : ''}">
+                <div class="habit-item ${isCompleted ? 'completed' : ''}" data-habit-id="${habit.id}">
                     <div class="habit-info">
                         <div class="habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-meta">
@@ -948,16 +1029,50 @@ class HabitTracker {
         const totalHabits = this.habits.length;
         const today = this.getDateString(new Date());
         const completedToday = this.habits.filter(h => h.completedDates.includes(today)).length;
-        const maxStreak = this.habits.reduce((max, h) => Math.max(max, h.streak), 0);
+        const overallStreak = this.calculateOverallStreak();
 
         document.getElementById('totalHabits').textContent = totalHabits;
         document.getElementById('completedToday').textContent = completedToday;
-        document.getElementById('currentStreak').textContent = maxStreak;
+        document.getElementById('currentStreak').textContent = overallStreak;
 
         const weeklyAverage = this.calculateWeeklyAverage();
         document.getElementById('weeklyAverage').textContent = Math.round(weeklyAverage) + '%';
 
         this.updateInsights();
+        this.updateExpBar();
+        this.renderTopHabitsSidebar();
+    }
+
+    calculateOverallStreak() {
+        if (this.habits.length === 0) return 0;
+
+        let streak = 0;
+        let cursor = new Date();
+
+        while (true) {
+            const dateStr = this.getDateString(cursor);
+            const allCompleted = this.habits.every(habit => habit.completedDates.includes(dateStr));
+            if (!allCompleted) break;
+            streak++;
+            cursor.setDate(cursor.getDate() - 1);
+        }
+
+        return streak;
+    }
+
+    updateExpBar() {
+        const expFill = document.getElementById('expFill');
+        const expValue = document.getElementById('expValue');
+        if (!expFill || !expValue) return;
+
+        const totalCompletions = this.habits.reduce((sum, h) => sum + h.completedDates.length, 0);
+        this.currentExp = totalCompletions * 10;
+        const levelExp = this.currentExp % this.expLevelSize;
+        const level = Math.floor(this.currentExp / this.expLevelSize) + 1;
+        const percent = Math.min(100, (levelExp / this.expLevelSize) * 100);
+
+        expFill.style.width = `${percent}%`;
+        expValue.textContent = `Lv.${level} • ${levelExp} / ${this.expLevelSize}`;
     }
 
     calculateWeeklyAverage() {

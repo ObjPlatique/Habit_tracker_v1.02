@@ -8,6 +8,35 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Toggle sidebar">☰</button>
+    <aside id="quickSidebar" class="quick-sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="quickAccess">⚡ Quick Access</h2>
+            <p data-i18n="topConsistentHabits">Top consistent habits</p>
+        </div>
+        <div id="topHabitsList" class="top-habits-list">
+            <p class="empty-message" data-i18n="noHabits">No habits yet. Add one to get started!</p>
+        </div>
+        <div class="sidebar-settings">
+            <h3 data-i18n="settings">⚙️ Settings</h3>
+            <div class="sidebar-setting-item">
+                <label for="sidebarLanguageSelect" data-i18n="languageSetting">Language</label>
+                <select id="sidebarLanguageSelect" class="settings-select">
+                    <option value="eng">English</option>
+                    <option value="kor">한국어 (Korean)</option>
+                    <option value="jap">日本語 (Japanese)</option>
+                    <option value="chi">中文 (Chinese)</option>
+                    <option value="vie">Tiếng Việt (Vietnamese)</option>
+                </select>
+            </div>
+            <div class="sidebar-setting-item">
+                <label for="themeToggle" data-i18n="theme">Dark Theme</label>
+                <input id="themeToggle" type="checkbox">
+            </div>
+            <button id="sidebarResetBtn" class="reset-btn sidebar-reset-btn" data-i18n="reset">🔄 Reset</button>
+        </div>
+    </aside>
+    <div class="page-content">
     <div class="container">
         <!-- Language & Timezone Selector -->
         <div class="settings-bar">
@@ -80,6 +109,15 @@
 
         <!-- Routine View Menu -->
         <div class="routine-menu">
+            <div class="exp-menu">
+                <div class="exp-meta">
+                    <span id="expLabel" data-i18n="exp">EXP</span>
+                    <span id="expValue">0 / 100</span>
+                </div>
+                <div class="exp-track">
+                    <div id="expFill" class="exp-fill"></div>
+                </div>
+            </div>
             <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
             <button class="routine-btn" data-view="weekly" data-i18n="weekly">📅 Weekly</button>
             <button class="routine-btn" data-view="monthly" data-i18n="monthly">📆 Monthly</button>
@@ -218,6 +256,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Notification Toast -->

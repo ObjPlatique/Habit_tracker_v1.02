@@ -1478,3 +1478,158 @@ header h1 {
         grid-template-columns: 1fr;
     }
 }
+
+/* Sidebar + EXP + Theme enhancements */
+body {
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.dark-theme {
+    --bg-color: #111827;
+    --card-bg: #1f2937;
+    --text-dark: #f3f4f6;
+    --text-light: #9ca3af;
+    --border-color: #374151;
+    background: linear-gradient(135deg, #111827 0%, #312e81 100%);
+}
+
+.page-content {
+    margin-left: 310px;
+    transition: margin-left 0.3s ease;
+}
+
+body.sidebar-collapsed .page-content {
+    margin-left: 0;
+}
+
+.sidebar-toggle-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 500;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+.quick-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 290px;
+    background: var(--card-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 72px 16px 16px;
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform 0.3s ease;
+}
+
+body.sidebar-collapsed .quick-sidebar {
+    transform: translateX(-100%);
+}
+
+.top-habits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.top-habit-item {
+    background: var(--bg-color);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.top-habit-score {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.sidebar-settings {
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sidebar-reset-btn {
+    width: 100%;
+}
+
+.exp-menu {
+    flex: 1 1 100%;
+    min-width: 240px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.exp-meta {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.exp-track {
+    width: 100%;
+    background: var(--border-color);
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.exp-fill {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #22d3ee);
+    transition: width 0.3s ease;
+}
+
+.habit-highlight {
+    animation: pulse-highlight 1.2s ease;
+}
+
+@keyframes pulse-highlight {
+    0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+    100% { box-shadow: 0 0 0 14px rgba(99, 102, 241, 0); }
+}
+
+@media (max-width: 992px) {
+    .page-content {
+        margin-left: 0;
+    }
+
+    .quick-sidebar {
+        transform: translateX(-100%);
+    }
+
+    body:not(.sidebar-collapsed) .quick-sidebar {
+        transform: translateX(0);
+    }
+}
