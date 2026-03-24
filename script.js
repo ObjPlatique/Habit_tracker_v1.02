@@ -64,7 +64,7 @@ class HabitTracker {
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
         this.setupAutoSave();
-        this.renderCopilotSuggestions();
+        this.renderDailyChallenges();
     }
 
     initializeEventListeners() {
@@ -84,7 +84,7 @@ class HabitTracker {
         document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
         document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebar());
         document.getElementById('useFreezeBtn').addEventListener('click', () => this.useFreezeForToday());
-        document.getElementById('refreshCopilotBtn').addEventListener('click', () => this.renderCopilotSuggestions());
+        document.getElementById('refreshChallengesBtn').addEventListener('click', () => this.renderDailyChallenges());
 
         // Routine view menu
         document.querySelectorAll('.routine-btn').forEach(btn => {
@@ -762,7 +762,7 @@ class HabitTracker {
         this.updateCharts();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
-        this.renderCopilotSuggestions();
+        this.renderDailyChallenges();
 
         input.value = '';
         input.focus();
@@ -780,7 +780,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
-            this.renderCopilotSuggestions();
+            this.renderDailyChallenges();
             this.showToast('Habit deleted', 'success');
         }
     }
@@ -808,7 +808,7 @@ class HabitTracker {
         this.updateCharts();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
-        this.renderCopilotSuggestions();
+        this.renderDailyChallenges();
     }
 
     completeAllToday() {
@@ -831,7 +831,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
-            this.renderCopilotSuggestions();
+            this.renderDailyChallenges();
             this.showToast(`✅ Completed ${count} habits!`, 'success');
         } else {
             this.showToast('All habits already completed today!', 'info');
@@ -856,7 +856,7 @@ class HabitTracker {
             this.updateCharts();
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
-            this.renderCopilotSuggestions();
+            this.renderDailyChallenges();
             this.showToast("Today's progress reset", 'success');
         }
     }
@@ -1055,7 +1055,7 @@ class HabitTracker {
         this.updateStats();
         this.renderHabits();
         this.renderDailyView();
-        this.renderCopilotSuggestions();
+        this.renderDailyChallenges();
         this.showToast('🧊 Freeze activated. Today will not break your streak.', 'success');
     }
 
@@ -1209,7 +1209,7 @@ class HabitTracker {
                 this.updateCharts();
                 this.renderWeeklyTracker();
                 this.renderMonthlyTracker();
-                this.renderCopilotSuggestions();
+                this.renderDailyChallenges();
                 this.showToast('🗑️ All data has been reset!', 'success');
             }
         }
@@ -1257,8 +1257,8 @@ class HabitTracker {
         return div.innerHTML;
     }
 
-    renderCopilotSuggestions() {
-        const list = document.getElementById('copilotSuggestions');
+    renderDailyChallenges() {
+        const list = document.getElementById('dailyChallenges');
         if (!list) return;
 
         const now = new Date();
@@ -1268,13 +1268,19 @@ class HabitTracker {
         const pending = Math.max(0, this.habits.length - completedToday);
         const healthHabits = this.habits.filter(h => h.category === 'health').length;
 
-        const suggestions = [];
-        suggestions.push(hour < 12 ? 'Buổi sáng: hoàn thành 1 thói quen khó nhất trước 11h.' : 'Buổi chiều/tối: chọn 1 thói quen nhẹ để giữ đà.');
-        suggestions.push(`Hôm nay bạn đã hoàn thành ${completedToday}/${this.habits.length} thói quen. Ưu tiên ${pending} thói quen còn lại.`);
-        suggestions.push(healthHabits === 0 ? 'Nên thêm 1 thói quen sức khỏe ngắn: uống nước hoặc đi bộ 10 phút.' : 'Duy trì thói quen sức khỏe để tăng năng lượng lâu dài.');
-        suggestions.push(this.freezeCharges > 0 ? `Bạn có ${this.freezeCharges} Freeze charge. Chỉ dùng khi thật sự bận.` : 'Lên level để nhận Freeze charge bảo vệ chuỗi.');
+        const challenges = [];
+        challenges.push(hour < 12
+            ? 'Morning mission: complete your hardest habit before 11:00.'
+            : 'Evening mission: finish one easy habit to protect momentum.');
+        challenges.push(`Progress mission: finish ${Math.max(1, pending)} more habit${pending === 1 ? '' : 's'} today.`);
+        challenges.push(healthHabits === 0
+            ? 'Health mission: add one 10-minute health habit (water, walk, stretch).'
+            : 'Health mission: complete at least one health habit today.');
+        challenges.push(this.freezeCharges > 0
+            ? `Strategy mission: keep your ${this.freezeCharges} Freeze charge${this.freezeCharges > 1 ? 's' : ''} for true emergencies.`
+            : 'Level-up mission: maintain your streak to earn a Freeze charge.');
 
-        list.innerHTML = suggestions.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
+        list.innerHTML = challenges.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
     }
 }
 
