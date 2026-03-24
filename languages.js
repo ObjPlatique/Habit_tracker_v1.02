@@ -384,6 +384,9 @@ class LanguageManager {
         ];
         
         const select = document.getElementById('timezoneSelect');
+        if (!select) {
+            return;
+        }
         timezones.forEach(tz => {
             const option = document.createElement('option');
             option.value = tz.value;
