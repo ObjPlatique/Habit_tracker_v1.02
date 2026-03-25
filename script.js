@@ -10,9 +10,57 @@ function detectUserTimezone() {
     return tz;
 }
 
+function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('./sw.js');
+            if ('sync' in registration) {
+                registration.sync.register('habit-sync').catch(() => {
+                    // Ignore registration errors in unsupported browsers.
+                });
+            }
+        } catch (error) {
+            console.warn('Service worker registration failed:', error);
+        }
+    });
+}
+
+function getNetworkStatusElement() {
+    return document.getElementById('networkStatus');
+}
+
+function updateNetworkStatusIndicator({ online = navigator.onLine, syncing = false, pendingSync = false } = {}) {
+    const el = getNetworkStatusElement();
+    if (!el) return;
+
+    if (!online) {
+        el.className = 'network-status offline';
+        el.textContent = '🔴 Offline mode';
+        return;
+    }
+
+    if (syncing) {
+        el.className = 'network-status syncing';
+        el.textContent = '🔄 Syncing local changes...';
+        return;
+    }
+
+    if (pendingSync) {
+        el.className = 'network-status syncing';
+        el.textContent = '🟡 Online (sync pending)';
+        return;
+    }
+
+    el.className = 'network-status online';
+    el.textContent = '🟢 Online mode';
+}
+
 // Setup event listeners for settings
 document.addEventListener('DOMContentLoaded', () => {
     detectUserTimezone();
+    registerServiceWorker();
 
     document.getElementById('sidebarLanguageSelect').value = langManager.currentLanguage;
     langManager.updatePageLanguage();
@@ -36,6 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('sidebar-collapsed', savedSidebarState === 'true');
     } else if (window.innerWidth <= 992) {
         document.body.classList.add('sidebar-collapsed');
+    }
+
+    updateNetworkStatusIndicator({ pendingSync: localStorage.getItem('habitSyncPending') === 'true' });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data?.type === 'SYNC_REQUESTED' && window.app?.syncPendingChanges) {
+                window.app.syncPendingChanges({ silent: true });
+            }
+        });
     }
 });
 
@@ -180,6 +238,8 @@ class HabitTracker {
             difficulty: 'easy'
         };
         this.lastMotivationMessage = '';
+        this.syncPendingKey = 'habitSyncPending';
+        this.lastSyncedAtKey = 'habitLastSyncedAt';
         this.habits = this.loadHabits();
         this.motivationalMessages = [
             'You are one small action away from progress 🌱',
@@ -205,6 +265,7 @@ class HabitTracker {
         this.selectedDate = this.getDateString(new Date());
         this.lastSaveTime = this.loadLastSaveTime();
         this.initializeEventListeners();
+        this.initializeConnectivitySync();
         this.renderHabits();
         this.updateStats();
         this.initializeCharts();
@@ -381,6 +442,59 @@ class HabitTracker {
         });
 
         this.syncResponsivePanels();
+    }
+
+
+    initializeConnectivitySync() {
+        updateNetworkStatusIndicator({ pendingSync: this.hasPendingSync() });
+
+        window.addEventListener('online', () => {
+            this.syncPendingChanges();
+        });
+
+        window.addEventListener('offline', () => {
+            updateNetworkStatusIndicator({ online: false });
+        });
+
+        if (navigator.onLine) {
+            this.syncPendingChanges({ silent: true });
+        }
+    }
+
+    hasPendingSync() {
+        return localStorage.getItem(this.syncPendingKey) === 'true';
+    }
+
+    markPendingSync() {
+        localStorage.setItem(this.syncPendingKey, 'true');
+        if (!navigator.onLine) {
+            updateNetworkStatusIndicator({ online: false });
+            return;
+        }
+
+        updateNetworkStatusIndicator({ online: true, pendingSync: true });
+    }
+
+    syncPendingChanges({ silent = false } = {}) {
+        if (!navigator.onLine) {
+            updateNetworkStatusIndicator({ online: false });
+            return;
+        }
+
+        if (!this.hasPendingSync()) {
+            updateNetworkStatusIndicator({ online: true, pendingSync: false });
+            return;
+        }
+
+        updateNetworkStatusIndicator({ online: true, syncing: true });
+        setTimeout(() => {
+            localStorage.setItem(this.syncPendingKey, 'false');
+            localStorage.setItem(this.lastSyncedAtKey, new Date().toISOString());
+            updateNetworkStatusIndicator({ online: true, pendingSync: false });
+            if (!silent) {
+                this.showToast('✅ Local changes synced after reconnecting.', 'success');
+            }
+        }, 700);
     }
 
     switchView(view) {
@@ -2113,6 +2227,11 @@ class HabitTracker {
         localStorage.setItem('lastAwardedLevel', String(this.lastAwardedLevel));
         localStorage.setItem('frozenDates', JSON.stringify(this.frozenDates));
         localStorage.setItem('lastSaveTime', new Date().toISOString());
+
+        this.markPendingSync();
+        if (navigator.onLine) {
+            this.syncPendingChanges({ silent: true });
+        }
     }
 
     loadHabits() {
@@ -2405,3 +2524,4 @@ class HabitTracker {
 
 // Initialize the app
 const app = new HabitTracker();
+window.app = app;
