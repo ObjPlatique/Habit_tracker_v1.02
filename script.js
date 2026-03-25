@@ -347,9 +347,21 @@ class HabitTracker {
         document.getElementById('onboardingNextBtn')?.addEventListener('click', () => this.handleOnboardingNext());
         document.getElementById('onboardingBackBtn')?.addEventListener('click', () => this.handleOnboardingBack());
         document.getElementById('onboardingSkipBtn')?.addEventListener('click', () => this.finishOnboarding(true));
+        document.querySelectorAll('#onboardingStep1 input[type="checkbox"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                this.syncOnboardingDataFromInputs();
+                this.renderStarterPreview();
+            });
+        });
+        document.querySelectorAll('input[name="onboardingTime"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                this.syncOnboardingDataFromInputs();
+                this.renderStarterPreview();
+            });
+        });
         document.querySelectorAll('input[name="onboardingDifficulty"]').forEach((input) => {
             input.addEventListener('change', () => {
-                this.onboardingData.difficulty = input.value;
+                this.syncOnboardingDataFromInputs();
                 this.renderStarterPreview();
             });
         });
@@ -1949,6 +1961,9 @@ class HabitTracker {
             }
         }
 
+        this.syncOnboardingInputsFromData();
+        this.syncOnboardingDataFromInputs();
+
         if (completed || this.habits.length > 0) {
             modal.classList.add('hidden');
             modal.setAttribute('aria-hidden', 'true');
@@ -1960,11 +1975,30 @@ class HabitTracker {
         this.updateOnboardingUI();
     }
 
-    handleOnboardingNext() {
+    syncOnboardingInputsFromData() {
+        document.querySelectorAll('#onboardingStep1 input[type="checkbox"]').forEach((input) => {
+            input.checked = this.onboardingData.goals.includes(input.value);
+        });
+
+        document.querySelectorAll('input[name="onboardingTime"]').forEach((input) => {
+            input.checked = input.value === this.onboardingData.preferredTime;
+        });
+
+        document.querySelectorAll('input[name="onboardingDifficulty"]').forEach((input) => {
+            input.checked = input.value === this.onboardingData.difficulty;
+        });
+    }
+
+    syncOnboardingDataFromInputs() {
         const goals = Array.from(document.querySelectorAll('#onboardingStep1 input[type="checkbox"]:checked')).map((input) => input.value);
         const preferredTime = document.querySelector('input[name="onboardingTime"]:checked')?.value || 'morning';
         const difficulty = document.querySelector('input[name="onboardingDifficulty"]:checked')?.value || 'easy';
         this.onboardingData = { goals, preferredTime, difficulty };
+    }
+
+    handleOnboardingNext() {
+        this.syncOnboardingDataFromInputs();
+        const goals = this.onboardingData.goals;
 
         if (this.onboardingStep === 1 && goals.length === 0) {
             this.showToast('Please select at least one goal.', 'info');
