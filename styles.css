@@ -2102,6 +2102,94 @@ body.sidebar-collapsed .quick-sidebar {
     transition: width 0.3s ease;
 }
 
+
+.daily-habit-item,
+.habit-item,
+.stat-card,
+.chart-section,
+.ring-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.daily-habit-item:hover,
+.habit-item:hover,
+.stat-card:hover,
+.chart-section:hover,
+.ring-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.daily-habit-item.just-completed,
+.habit-item.just-completed {
+    animation: habitCompletePop 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes habitCompletePop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+button,
+.btn,
+.daily-check-btn,
+.daily-skip-btn,
+.add-btn,
+.quick-action-btn,
+.routine-btn {
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover,
+.btn:hover,
+.daily-check-btn:hover,
+.daily-skip-btn:hover,
+.add-btn:hover,
+.quick-action-btn:hover,
+.routine-btn:hover {
+    filter: brightness(1.03);
+}
+
+button.pressing,
+.btn.pressing,
+.daily-check-btn.pressing,
+.daily-skip-btn.pressing,
+.add-btn.pressing,
+.quick-action-btn.pressing,
+.routine-btn.pressing {
+    transform: scale(0.96);
+}
+
+.progress-fill,
+.exp-fill,
+.onboarding-progress-fill {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill::after,
+.exp-fill::after,
+.onboarding-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -35%;
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    animation: progressShimmer 1.4s ease;
+}
+
+@keyframes progressShimmer {
+    0% { left: -35%; opacity: 0.2; }
+    30% { opacity: 0.5; }
+    100% { left: 100%; opacity: 0; }
+}
+
+.exp-fill {
+    transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .habit-highlight {
     animation: pulse-highlight 1.2s ease;
 }
