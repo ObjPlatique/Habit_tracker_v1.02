@@ -235,6 +235,7 @@ class HabitTracker {
 
     normalizeHabitData(habit) {
         const normalized = { ...habit };
+        normalized.type = normalized.type === 'quit' ? 'quit' : 'build';
         normalized.completedDates = Array.isArray(normalized.completedDates) ? normalized.completedDates : [];
         normalized.completionTimestamps = Array.isArray(normalized.completionTimestamps) ? normalized.completionTimestamps : [];
         normalized.reminder = {
@@ -456,15 +457,17 @@ class HabitTracker {
 
         dailyGrid.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
+            const typeMeta = this.getHabitTypeMeta(habit);
             return `
-                <div class="daily-habit-item ${isCompleted ? 'completed' : 'missed'}">
+                <div class="daily-habit-item ${isCompleted ? 'completed' : 'missed'} ${typeMeta.className}">
                     <div>
                         <div class="daily-habit-name">${this.escapeHtml(habit.name)}</div>
+                        <div class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</div>
                         <div class="daily-habit-category ${habit.category}">${habit.category}</div>
                     </div>
-                    <button class="daily-check-btn ${isCompleted ? 'completed' : ''}" 
+                    <button class="daily-check-btn ${isCompleted ? 'completed' : ''} ${typeMeta.className}" 
                             onclick="app.toggleHabitCompletion(${habit.id})">
-                        ${isCompleted ? '✓ Done' : 'Mark Done'}
+                        ${this.getHabitActionText(habit, isCompleted)}
                     </button>
                 </div>
             `;
@@ -597,14 +600,16 @@ class HabitTracker {
         const habitsList = document.getElementById('dayHabitsList');
         habitsList.innerHTML = this.habits.map(habit => {
             const isCompleted = habit.completedDates.includes(dateStr);
+            const typeMeta = this.getHabitTypeMeta(habit);
             return `
-                <div class="day-habit-detail ${isCompleted ? 'completed' : ''}">
+                <div class="day-habit-detail ${isCompleted ? 'completed' : ''} ${typeMeta.className}">
                     <div class="day-habit-detail-name">
                         <div class="day-habit-detail-title">${this.escapeHtml(habit.name)}</div>
+                        <span class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</span>
                         <span class="day-habit-detail-cat ${habit.category}">${habit.category}</span>
                     </div>
                     <span class="day-habit-status ${isCompleted ? 'completed' : 'pending'}">
-                        ${isCompleted ? '✓ Done' : 'Pending'}
+                        ${isCompleted ? this.getHabitActionText(habit, true) : 'Pending'}
                     </span>
                 </div>
             `;
@@ -1248,6 +1253,7 @@ class HabitTracker {
     addHabit() {
         const input = document.getElementById('habitInput');
         const category = document.getElementById('categorySelect').value;
+        const type = document.getElementById('habitTypeSelect').value === 'quit' ? 'quit' : 'build';
         const habitName = input.value.trim();
 
         if (!habitName) {
@@ -1259,6 +1265,7 @@ class HabitTracker {
             id: Date.now(),
             name: habitName,
             category: category,
+            type,
             createdDate: new Date().toISOString(),
             completedDates: [],
             completionTimestamps: [],
@@ -1278,7 +1285,8 @@ class HabitTracker {
 
         input.value = '';
         input.focus();
-        this.showToast(`✅ Habit "${habitName}" added successfully!`, 'success');
+        const createdLabel = type === 'quit' ? 'quit' : 'build';
+        this.showToast(`✅ ${createdLabel.charAt(0).toUpperCase() + createdLabel.slice(1)} habit "${habitName}" added successfully!`, 'success');
     }
 
     deleteHabit(id) {
@@ -1307,11 +1315,11 @@ class HabitTracker {
         if (index > -1) {
             habit.completedDates.splice(index, 1);
             habit.completionTimestamps = habit.completionTimestamps.filter((isoTs) => !isoTs.startsWith(today));
-            this.showToast(`${habit.name} marked incomplete`, 'info');
+            this.showToast(this.getHabitTypeMessage(habit, 'reset'), 'info');
         } else {
             habit.completedDates.push(today);
             habit.completionTimestamps.push(new Date().toISOString());
-            this.showToast(`✅ Great! ${habit.name} completed!`, 'success');
+            this.showToast(this.getHabitTypeMessage(habit, 'success'), 'success');
         }
 
         habit.streak = this.calculateStreak(habit);
@@ -1426,6 +1434,32 @@ class HabitTracker {
         return habit.completedDates.includes(today);
     }
 
+    getHabitTypeMeta(habit) {
+        if (habit.type === 'quit') {
+            return { icon: '🛑', label: 'Quit', className: 'quit' };
+        }
+
+        return { icon: '🟢', label: 'Build', className: 'build' };
+    }
+
+    getHabitActionText(habit, isCompleted = this.isCompletedToday(habit)) {
+        if (habit.type === 'quit') {
+            return isCompleted ? '✓ Avoided' : 'Mark Avoided';
+        }
+        return isCompleted ? '✓ Done' : 'Mark Done';
+    }
+
+    getHabitTypeMessage(habit, messageType) {
+        if (habit.type === 'quit') {
+            if (messageType === 'success') return `✅ Great discipline! You avoided "${habit.name}" today.`;
+            if (messageType === 'reset') return `${habit.name} avoidance was reset for today`;
+        }
+
+        if (messageType === 'success') return `✅ Great! ${habit.name} completed!`;
+        if (messageType === 'reset') return `${habit.name} marked incomplete`;
+        return 'Habit updated';
+    }
+
     getDateString(date) {
         return date.toISOString().split('T')[0];
     }
@@ -1451,16 +1485,18 @@ class HabitTracker {
         habitsList.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
             const stateClass = isCompleted ? 'completed' : 'missed';
+            const typeMeta = this.getHabitTypeMeta(habit);
             const progress = this.getProgressPercentage(habit);
             const suggestion = this.getBestReminderTime(habit);
             const reminderStatus = habit.reminder.enabled ? `On at ${habit.reminder.time}` : 'Off';
             const reminderHistory = habit.reminder.history.slice(-5).reverse();
             
             return `
-                <div class="habit-item ${stateClass}" data-habit-id="${habit.id}">
+                <div class="habit-item ${stateClass} ${typeMeta.className}" data-habit-id="${habit.id}">
                     <div class="habit-info">
                         <div class="habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-meta">
+                            <span class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</span>
                             <span class="category-badge ${habit.category}">${habit.category}</span>
                             <span>Completed: ${habit.completedDates.length} days</span>
                             <span class="reminder-pill">🔔 ${this.escapeHtml(reminderStatus)}</span>
@@ -1474,8 +1510,8 @@ class HabitTracker {
                         <div class="streak-label">Streak</div>
                     </div>
                     <div class="habit-actions">
-                        <button class="btn btn-check" onclick="app.toggleHabitCompletion(${habit.id})">
-                            ${isCompleted ? '✓ Done' : 'Mark Done'}
+                        <button class="btn btn-check ${typeMeta.className}" onclick="app.toggleHabitCompletion(${habit.id})">
+                            ${this.getHabitActionText(habit, isCompleted)}
                         </button>
                         <button class="btn btn-edit" onclick="app.toggleReminderEdit(${habit.id})">Edit</button>
                         <button class="btn btn-delete" onclick="app.deleteHabit(${habit.id})">Delete</button>
@@ -1595,7 +1631,10 @@ class HabitTracker {
 
     sendHabitReminder(habit) {
         const message = this.motivationalMessages[Math.floor(Math.random() * this.motivationalMessages.length)];
-        const body = `Time for "${habit.name}". ${message}`;
+        const actionPrompt = habit.type === 'quit'
+            ? `Stay strong and avoid "${habit.name}" today.`
+            : `Time to complete "${habit.name}".`;
+        const body = `${actionPrompt} ${message}`;
 
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Habit reminder', { body });
@@ -2134,6 +2173,7 @@ class HabitTracker {
                     id: Date.now() + Math.floor(Math.random() * 10000),
                     name: starterHabit.name,
                     category: starterHabit.category,
+                    type: 'build',
                     createdDate: new Date().toISOString(),
                     completedDates: [],
                     completionTimestamps: [],
