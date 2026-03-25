@@ -12,6 +12,8 @@
       this.form = document.getElementById('chatbotForm');
       this.input = document.getElementById('chatbotInput');
       this.typingIndicator = document.getElementById('chatbotTyping');
+      this.suggestButton = document.getElementById('chatbotSuggestBtn');
+      this.analyzeButton = document.getElementById('chatbotAnalyzeBtn');
 
       if (!this.toggleButton || !this.chatWindow || !this.messageList || !this.form || !this.input) {
         return;
