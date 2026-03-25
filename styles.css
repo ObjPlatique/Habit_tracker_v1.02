@@ -2079,6 +2079,9 @@ body.sidebar-collapsed .page-content {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     transition: transform 0.3s ease;
 }
 
