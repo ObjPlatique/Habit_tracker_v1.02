@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Habit Tracker">
     <title>Habit Tracker</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -114,6 +121,8 @@
             <p class="subtitle" id="headerSubtitle">Build better habits, one day at a time</p>
             <div class="header-actions">
                 <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme" aria-pressed="false">🌙 Dark</button>
+                <button id="installBtn" class="save-btn" title="Install app to home screen" style="display: none;">📲 Install App</button>
+                <button id="fullscreenBtn" class="save-btn" title="Toggle fullscreen mode" aria-pressed="false">⛶ Fullscreen</button>
                 <button id="saveBtn" class="save-btn" title="Save all changes" data-i18n="save">💾 Save</button>
                 <button id="exportBtn" class="export-btn" title="Export as JSON" data-i18n="export">📥 Export</button>
                 <button id="importBtn" class="import-btn" title="Import from JSON" data-i18n="import">📤 Import</button>
