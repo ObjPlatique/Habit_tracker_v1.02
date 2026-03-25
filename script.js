@@ -390,6 +390,7 @@ class HabitTracker {
         document.getElementById('routineMenuToggle')?.addEventListener('click', () => this.toggleRoutineMenu());
         document.getElementById('useFreezeBtn').addEventListener('click', () => this.useFreezeForToday());
         document.getElementById('refreshChallengesBtn').addEventListener('click', () => this.renderDailyChallenges());
+        document.getElementById('nextActionBtn')?.addEventListener('click', () => this.handleNextAction());
         this.initializeMicroInteractions();
 
         // Routine view menu
@@ -575,6 +576,10 @@ class HabitTracker {
             document.getElementById('routineMenuToggle')?.setAttribute('aria-expanded', 'false');
         }
 
+        if (view === 'daily') {
+            setTimeout(() => this.autoFocusTodayHabit(), 80);
+        }
+
         this.showToast(`Switched to ${view.charAt(0).toUpperCase() + view.slice(1)} view`, 'info');
     }
 
@@ -616,6 +621,58 @@ class HabitTracker {
         return Math.round((completedDays / lookbackDays) * 100);
     }
 
+    getMostImportantHabit() {
+        if (this.habits.length === 0) return null;
+
+        const openHabits = this.habits.filter((habit) => !this.isCompletedToday(habit));
+        const pool = openHabits.length > 0 ? openHabits : this.habits;
+        const scored = pool.map((habit) => {
+            const consistency = this.getConsistencyScore(habit);
+            const categoryBoost = habit.category === 'health' ? 8 : 0;
+            const streakBoost = Math.min(40, (habit.streak || 0) * 3);
+            const quitBoost = habit.type === 'quit' ? 5 : 0;
+            const skippedPenalty = this.isSkippedToday(habit) ? -12 : 0;
+
+            return {
+                habit,
+                score: consistency + categoryBoost + streakBoost + quitBoost + skippedPenalty
+            };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        return scored[0]?.habit || null;
+    }
+
+    handleNextAction() {
+        if (this.habits.length === 0) {
+            this.focusQuickAdd();
+            return;
+        }
+
+        const habit = this.getMostImportantHabit();
+        if (!habit) return;
+
+        if (this.currentView !== 'daily') {
+            this.switchView('daily');
+        }
+        this.focusDailyHabit(habit.id);
+    }
+
+    focusDailyHabit(id) {
+        const habitEl = document.querySelector(`.daily-habit-item[data-habit-id="${id}"]`);
+        if (!habitEl) return;
+
+        habitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        habitEl.classList.add('habit-highlight');
+        setTimeout(() => habitEl.classList.remove('habit-highlight'), 1200);
+    }
+
+    autoFocusTodayHabit() {
+        const habit = this.getMostImportantHabit();
+        if (!habit) return;
+        this.focusDailyHabit(habit.id);
+    }
+
     renderTopHabitsSidebar() {
         const topHabitsList = document.getElementById('topHabitsList');
         if (!topHabitsList) return;
@@ -649,6 +706,8 @@ class HabitTracker {
     // Daily View
     renderDailyView() {
         const dailyGrid = document.getElementById('dailyGrid');
+        const nextActionText = document.getElementById('nextActionText');
+        const nextActionBtn = document.getElementById('nextActionBtn');
         const today = new Date();
         document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', { 
             weekday: 'long', 
@@ -658,8 +717,30 @@ class HabitTracker {
         });
 
         if (this.habits.length === 0) {
-            dailyGrid.innerHTML = '<p class="empty-message">No habits yet. Add one to get started!</p>';
+            dailyGrid.innerHTML = `
+                <div class="daily-empty-state">
+                    <h3>No habits yet</h3>
+                    <p>Add your first habit and we will guide your next step automatically.</p>
+                    <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">+ Add first habit</button>
+                </div>
+            `;
+            if (nextActionText) nextActionText.textContent = 'Create your first habit to start a focused routine.';
+            if (nextActionBtn) nextActionBtn.textContent = 'Add habit';
             return;
+        }
+
+        const importantHabit = this.getMostImportantHabit();
+        const pendingCount = this.habits.filter(habit => !this.isCompletedToday(habit)).length;
+
+        if (nextActionText) {
+            if (pendingCount === 0) {
+                nextActionText.textContent = 'All habits completed today. Great work—review your streaks or plan tomorrow.';
+            } else if (importantHabit) {
+                nextActionText.textContent = `Focus now: ${importantHabit.name} (${pendingCount} pending today).`;
+            }
+        }
+        if (nextActionBtn) {
+            nextActionBtn.textContent = pendingCount === 0 ? 'Review habits' : 'Do next';
         }
 
         dailyGrid.innerHTML = this.habits.map(habit => {
@@ -667,10 +748,11 @@ class HabitTracker {
             const isSkipped = this.isSkippedToday(habit);
             const typeMeta = this.getHabitTypeMeta(habit);
             const isJustCompleted = this.lastCompletedHabitId === habit.id && isCompleted;
+            const isImportant = importantHabit?.id === habit.id;
             return `
-                <div class="daily-habit-item ${isCompleted ? 'completed' : isSkipped ? 'skipped' : 'missed'} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''}" data-habit-id="${habit.id}">
+                <div class="daily-habit-item ${isCompleted ? 'completed' : isSkipped ? 'skipped' : 'missed'} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''} ${isImportant ? 'important-habit' : ''}" data-habit-id="${habit.id}">
                     <div class="daily-main-action" onclick="app.toggleHabitCompletion(${habit.id})">
-                        <div class="daily-habit-name">${this.escapeHtml(habit.name)}</div>
+                        <div class="daily-habit-name">${this.escapeHtml(habit.name)}${isImportant ? '<span class="priority-chip">Top priority</span>' : ''}</div>
                         <div class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</div>
                         <div class="daily-habit-category ${habit.category}">${habit.category}</div>
                     </div>
@@ -687,6 +769,9 @@ class HabitTracker {
             `;
         }).join('');
         this.initializeSwipeActions();
+        if (this.currentView === 'daily') {
+            this.autoFocusTodayHabit();
+        }
     }
 
     // Weekly Tracker
@@ -1787,10 +1872,17 @@ class HabitTracker {
         const habitsList = document.getElementById('habitsList');
         
         if (this.habits.length === 0) {
-            habitsList.innerHTML = '<p class="empty-message">No habits yet. Add one to get started!</p>';
+            habitsList.innerHTML = `
+                <div class="daily-empty-state">
+                    <h3>No saved habits</h3>
+                    <p>Start with one tiny habit. We will suggest your next action automatically.</p>
+                    <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">Create first habit</button>
+                </div>
+            `;
             return;
         }
 
+        const importantHabit = this.getMostImportantHabit();
         habitsList.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
             const stateClass = isCompleted ? 'completed' : 'missed';
@@ -1801,10 +1893,11 @@ class HabitTracker {
             const reminderHistory = habit.reminder.history.slice(-5).reverse();
             
             const isJustCompleted = this.lastCompletedHabitId === habit.id && isCompleted;
+            const isImportant = importantHabit?.id === habit.id;
             return `
-                <div class="habit-item ${stateClass} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''}" data-habit-id="${habit.id}">
+                <div class="habit-item ${stateClass} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''} ${isImportant ? 'important-habit' : ''}" data-habit-id="${habit.id}">
                     <div class="habit-info">
-                        <div class="habit-name">${this.escapeHtml(habit.name)}</div>
+                        <div class="habit-name">${this.escapeHtml(habit.name)}${isImportant ? '<span class="priority-chip">Top priority</span>' : ''}</div>
                         <div class="habit-meta">
                             <span class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</span>
                             <span class="category-badge ${habit.category}">${habit.category}</span>
