@@ -178,7 +178,7 @@
         </div>
 
         <!-- Routine View Menu -->
-        <div class="routine-menu">
+        <div class="routine-menu" id="routineMenu">
             <div class="exp-menu">
                 <div class="exp-meta">
                     <span id="expLabel" data-i18n="exp">EXP</span>
@@ -192,10 +192,13 @@
                     <button id="useFreezeBtn" class="use-freeze-btn">Use Freeze</button>
                 </div>
             </div>
-            <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
-            <button class="routine-btn" data-view="weekly" data-i18n="weekly">📅 Weekly</button>
-            <button class="routine-btn" data-view="monthly" data-i18n="monthly">📆 Monthly</button>
-            <button class="routine-btn" data-view="analytics">📊 Analytics</button>
+            <button id="routineMenuToggle" class="routine-menu-toggle" aria-label="Toggle routine navigation" aria-expanded="false">☰ Views</button>
+            <div id="routineNavLinks" class="routine-nav-links">
+                <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
+                <button class="routine-btn" data-view="weekly" data-i18n="weekly">📅 Weekly</button>
+                <button class="routine-btn" data-view="monthly" data-i18n="monthly">📆 Monthly</button>
+                <button class="routine-btn" data-view="analytics">📊 Analytics</button>
+            </div>
         </div>
 
         <!-- Charts Section -->
@@ -299,43 +302,50 @@
                     </div>
                 </div>
 
-                <div class="analytics-visual-grid">
-                    <div class="analytics-card">
-                        <h3>Habit Calendar Heatmap</h3>
-                        <p class="analytics-helper-text">Green = completed, Red = missed</p>
-                        <div id="calendarHeatmap" class="calendar-heatmap"></div>
-                    </div>
-                    <div class="analytics-card">
-                        <h3>Progress Rings</h3>
-                        <div id="progressRings" class="progress-rings"></div>
-                    </div>
-                    <div class="analytics-card">
-                        <h3>Streak Visual</h3>
-                        <div id="streakVisual" class="streak-visual"></div>
-                    </div>
-                </div>
-
-                <div class="analytics-charts-grid">
-                    <div class="analytics-chart-card">
-                        <h3>Weekly Trend</h3>
-                        <div class="analytics-chart-wrap analytics-chart-wrap-custom">
-                            <canvas id="weeklyTrendCanvas"></canvas>
+                <!-- Mobile-first: keep advanced analytics collapsed on small screens -->
+                <details class="analytics-advanced" id="analyticsAdvancedVisual">
+                    <summary>Advanced visual insights</summary>
+                    <div class="analytics-visual-grid">
+                        <div class="analytics-card">
+                            <h3>Habit Calendar Heatmap</h3>
+                            <p class="analytics-helper-text">Green = completed, Red = missed</p>
+                            <div id="calendarHeatmap" class="calendar-heatmap"></div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Progress Rings</h3>
+                            <div id="progressRings" class="progress-rings"></div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Streak Visual</h3>
+                            <div id="streakVisual" class="streak-visual"></div>
                         </div>
                     </div>
-                    <div class="analytics-chart-card">
-                        <h3>Monthly Completion (Line)</h3>
-                        <div class="analytics-chart-wrap">
-                            <canvas id="monthlyAnalyticsChart"></canvas>
+                </details>
+
+                <details class="analytics-advanced" id="analyticsAdvancedCharts">
+                    <summary>Trend charts & generated insights</summary>
+                    <div class="analytics-charts-grid">
+                        <div class="analytics-chart-card">
+                            <h3>Weekly Trend</h3>
+                            <div class="analytics-chart-wrap analytics-chart-wrap-custom">
+                                <canvas id="weeklyTrendCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-chart-card">
+                            <h3>Monthly Completion (Line)</h3>
+                            <div class="analytics-chart-wrap">
+                                <canvas id="monthlyAnalyticsChart"></canvas>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="analytics-card analytics-insights-card">
-                    <h3>Generated Insights</h3>
-                    <ul id="analyticsInsights" class="analytics-insights-list">
-                        <li>Add habits and complete them to see insights.</li>
-                    </ul>
-                </div>
+                    <div class="analytics-card analytics-insights-card">
+                        <h3>Generated Insights</h3>
+                        <ul id="analyticsInsights" class="analytics-insights-list">
+                            <li>Add habits and complete them to see insights.</li>
+                        </ul>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -484,6 +494,14 @@
             <button type="submit" class="chatbot-send-btn">Send</button>
         </form>
     </section>
+
+    <!-- Mobile sticky bottom navigation -->
+    <nav class="mobile-bottom-nav" aria-label="Mobile view navigation">
+        <button class="routine-btn active" data-view="daily">📋<span>Daily</span></button>
+        <button class="routine-btn" data-view="weekly">📅<span>Weekly</span></button>
+        <button class="routine-btn" data-view="monthly">📆<span>Monthly</span></button>
+        <button class="routine-btn" data-view="analytics">📊<span>Analytics</span></button>
+    </nav>
 
     <script src="languages.js"></script>
     <script src="script.js"></script>

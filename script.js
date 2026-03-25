@@ -268,6 +268,7 @@ class HabitTracker {
         document.getElementById('sidebarResetBtn').addEventListener('click', () => this.resetAllData());
         document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
         document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebar());
+        document.getElementById('routineMenuToggle')?.addEventListener('click', () => this.toggleRoutineMenu());
         document.getElementById('useFreezeBtn').addEventListener('click', () => this.useFreezeForToday());
         document.getElementById('refreshChallengesBtn').addEventListener('click', () => this.renderDailyChallenges());
 
@@ -374,7 +375,12 @@ class HabitTracker {
         });
 
         window.addEventListener('beforeunload', () => this.saveHabits());
-        window.addEventListener('resize', () => this.updateAnalyticsDashboard());
+        window.addEventListener('resize', () => {
+            this.updateAnalyticsDashboard();
+            this.syncResponsivePanels();
+        });
+
+        this.syncResponsivePanels();
     }
 
     switchView(view) {
@@ -391,7 +397,29 @@ class HabitTracker {
         // Show selected view
         document.getElementById(`${view}View`).classList.remove('hidden');
 
+        if (window.innerWidth < 768) {
+            document.getElementById('routineNavLinks')?.classList.remove('open');
+            document.getElementById('routineMenuToggle')?.setAttribute('aria-expanded', 'false');
+        }
+
         this.showToast(`Switched to ${view.charAt(0).toUpperCase() + view.slice(1)} view`, 'info');
+    }
+
+
+    toggleRoutineMenu() {
+        const links = document.getElementById('routineNavLinks');
+        const toggleBtn = document.getElementById('routineMenuToggle');
+        if (!links || !toggleBtn) return;
+
+        links.classList.toggle('open');
+        toggleBtn.setAttribute('aria-expanded', String(links.classList.contains('open')));
+    }
+
+    syncResponsivePanels() {
+        const desktop = window.innerWidth >= 1024;
+        document.querySelectorAll('.analytics-advanced').forEach((panel) => {
+            panel.open = desktop;
+        });
     }
 
     toggleSidebar() {
