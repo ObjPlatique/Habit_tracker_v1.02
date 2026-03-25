@@ -318,6 +318,7 @@ class HabitTracker {
         this.expLevelSize = 100;
         this.currentChartRange = 7;
         this.currentMonth = new Date();
+        this.lastCompletedHabitId = null;
         this.currentView = 'daily';
         this.selectedDate = this.getDateString(new Date());
         this.lastSaveTime = this.loadLastSaveTime();
@@ -389,6 +390,7 @@ class HabitTracker {
         document.getElementById('routineMenuToggle')?.addEventListener('click', () => this.toggleRoutineMenu());
         document.getElementById('useFreezeBtn').addEventListener('click', () => this.useFreezeForToday());
         document.getElementById('refreshChallengesBtn').addEventListener('click', () => this.renderDailyChallenges());
+        this.initializeMicroInteractions();
 
         // Routine view menu
         document.querySelectorAll('.routine-btn').forEach(btn => {
@@ -664,8 +666,9 @@ class HabitTracker {
             const isCompleted = this.isCompletedToday(habit);
             const isSkipped = this.isSkippedToday(habit);
             const typeMeta = this.getHabitTypeMeta(habit);
+            const isJustCompleted = this.lastCompletedHabitId === habit.id && isCompleted;
             return `
-                <div class="daily-habit-item ${isCompleted ? 'completed' : isSkipped ? 'skipped' : 'missed'} ${typeMeta.className}" data-habit-id="${habit.id}">
+                <div class="daily-habit-item ${isCompleted ? 'completed' : isSkipped ? 'skipped' : 'missed'} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''}" data-habit-id="${habit.id}">
                     <div class="daily-main-action" onclick="app.toggleHabitCompletion(${habit.id})">
                         <div class="daily-habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</div>
@@ -1527,15 +1530,22 @@ class HabitTracker {
 
         if (index > -1) {
             habit.completedDates.splice(index, 1);
+            this.lastCompletedHabitId = null;
             habit.completionTimestamps = habit.completionTimestamps.filter((isoTs) => !isoTs.startsWith(today));
             this.showToast(this.getHabitTypeMessage(habit, 'reset'), 'info');
         } else {
             habit.completedDates.push(today);
+            this.lastCompletedHabitId = habit.id;
             habit.skippedDates = habit.skippedDates.filter(date => date !== today);
             habit.completionTimestamps.push(new Date().toISOString());
             this.showToast(this.getHabitTypeMessage(habit, 'success'), 'success');
             this.setRandomMotivationMessage();
             this.triggerCelebration();
+            setTimeout(() => {
+                this.lastCompletedHabitId = null;
+                this.renderDailyView();
+                this.renderHabits();
+            }, 650);
         }
 
         habit.streak = this.calculateStreak(habit);
@@ -1693,6 +1703,23 @@ class HabitTracker {
         input.select();
     }
 
+    initializeMicroInteractions() {
+        document.addEventListener('pointerdown', (event) => {
+            const button = event.target.closest('button, .quick-action-btn');
+            if (button) {
+                button.classList.add('pressing');
+            }
+        });
+
+        document.addEventListener('pointerup', () => {
+            document.querySelectorAll('.pressing').forEach((btn) => btn.classList.remove('pressing'));
+        });
+
+        document.addEventListener('pointercancel', () => {
+            document.querySelectorAll('.pressing').forEach((btn) => btn.classList.remove('pressing'));
+        });
+    }
+
     initializeSwipeActions() {
         const cards = document.querySelectorAll('.daily-habit-item');
         cards.forEach(card => {
@@ -1773,8 +1800,9 @@ class HabitTracker {
             const reminderStatus = habit.reminder.enabled ? `On at ${habit.reminder.time}` : 'Off';
             const reminderHistory = habit.reminder.history.slice(-5).reverse();
             
+            const isJustCompleted = this.lastCompletedHabitId === habit.id && isCompleted;
             return `
-                <div class="habit-item ${stateClass} ${typeMeta.className}" data-habit-id="${habit.id}">
+                <div class="habit-item ${stateClass} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''}" data-habit-id="${habit.id}">
                     <div class="habit-info">
                         <div class="habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-meta">
@@ -2068,6 +2096,7 @@ class HabitTracker {
         const level = Math.floor(this.currentExp / this.expLevelSize) + 1;
         const percent = Math.min(100, (levelExp / this.expLevelSize) * 100);
 
+        expFill.style.setProperty('--target-width', `${percent}%`);
         expFill.style.width = `${percent}%`;
         expValue.textContent = `Lv.${level} • ${levelExp} / ${this.expLevelSize}`;
         this.grantLevelRewards(level);
