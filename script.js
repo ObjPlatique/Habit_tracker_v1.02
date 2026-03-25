@@ -179,13 +179,16 @@ class HabitTracker {
             preferredTime: 'morning',
             difficulty: 'easy'
         };
+        this.lastMotivationMessage = '';
         this.habits = this.loadHabits();
         this.motivationalMessages = [
             'You are one small action away from progress 🌱',
             'Tiny wins build unstoppable momentum 💪',
             'Future you will thank you for this habit ✨',
             'Keep the streak warm—you have got this 🔥',
-            'A gentle reminder: consistency beats intensity 🌟'
+            'A gentle reminder: consistency beats intensity 🌟',
+            'Progress over perfection, one checkmark at a time ✅',
+            'You showed up today—this is how streaks are built 📈'
         ];
         this.lineChart = null;
         this.pieChart = null;
@@ -216,6 +219,7 @@ class HabitTracker {
         this.renderDailyChallenges();
         this.initializeReminderSystem();
         this.initializeOnboarding();
+        this.updateMotivationPanel();
     }
 
     initializeReminderSystem() {
@@ -1320,6 +1324,8 @@ class HabitTracker {
             habit.completedDates.push(today);
             habit.completionTimestamps.push(new Date().toISOString());
             this.showToast(this.getHabitTypeMessage(habit, 'success'), 'success');
+            this.setRandomMotivationMessage();
+            this.triggerCelebration();
         }
 
         habit.streak = this.calculateStreak(habit);
@@ -1355,6 +1361,8 @@ class HabitTracker {
             this.renderWeeklyTracker();
             this.renderMonthlyTracker();
             this.renderDailyChallenges();
+            this.setRandomMotivationMessage(true);
+            this.triggerCelebration();
             this.showToast(`✅ Completed ${count} habits!`, 'success');
         } else {
             this.showToast('All habits already completed today!', 'info');
@@ -1664,8 +1672,95 @@ class HabitTracker {
 
         this.updateInsights();
         this.updateExpBar();
+        this.updateMotivationPanel();
         this.renderTopHabitsSidebar();
         this.updateAnalyticsDashboard();
+    }
+
+    calculatePerfectDayStreak() {
+        if (this.habits.length === 0) return 0;
+
+        let streak = 0;
+        let cursor = new Date();
+
+        while (true) {
+            const dateStr = this.getDateString(cursor);
+            const completed = this.habits.filter(h => h.completedDates.includes(dateStr)).length;
+            const isPerfect = completed === this.habits.length;
+            if (!isPerfect) break;
+            streak += 1;
+            cursor.setDate(cursor.getDate() - 1);
+        }
+
+        return streak;
+    }
+
+    updateMotivationPanel() {
+        const streakEl = document.getElementById('dailyStreakValue');
+        const badgeEl = document.getElementById('perfectDayBadge');
+        const messageEl = document.getElementById('motivationMessage');
+        const levelEl = document.getElementById('levelValue');
+        if (!streakEl || !badgeEl || !messageEl || !levelEl) return;
+
+        const today = this.getDateString(new Date());
+        const completedToday = this.habits.filter(h => h.completedDates.includes(today)).length;
+        const perfectDay = this.habits.length > 0 && completedToday === this.habits.length;
+        const perfectStreak = this.calculatePerfectDayStreak();
+        const level = Math.floor(this.currentExp / this.expLevelSize) + 1;
+
+        streakEl.textContent = `${perfectStreak} day${perfectStreak === 1 ? '' : 's'}`;
+        levelEl.textContent = `Lv.${level}`;
+        badgeEl.textContent = perfectDay ? '🏅 Earned today' : 'Not yet';
+        badgeEl.classList.toggle('badge-perfect', perfectDay);
+        badgeEl.classList.toggle('badge-muted', !perfectDay);
+
+        if (!this.lastMotivationMessage) {
+            this.setRandomMotivationMessage(true);
+        } else {
+            messageEl.textContent = this.lastMotivationMessage;
+        }
+    }
+
+    setRandomMotivationMessage(force = false) {
+        const messageEl = document.getElementById('motivationMessage');
+        if (!messageEl || this.motivationalMessages.length === 0) return;
+
+        let next = this.lastMotivationMessage;
+        if (force || this.motivationalMessages.length === 1) {
+            next = this.motivationalMessages[Math.floor(Math.random() * this.motivationalMessages.length)];
+        } else {
+            let attempts = 0;
+            while (next === this.lastMotivationMessage && attempts < 4) {
+                next = this.motivationalMessages[Math.floor(Math.random() * this.motivationalMessages.length)];
+                attempts += 1;
+            }
+        }
+
+        this.lastMotivationMessage = next;
+        messageEl.textContent = next;
+    }
+
+    triggerCelebration() {
+        const layer = document.createElement('div');
+        layer.className = 'celebration-burst';
+
+        const centerX = window.innerWidth * 0.5;
+        const centerY = Math.max(120, window.innerHeight * 0.35);
+        const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b'];
+
+        for (let i = 0; i < 16; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'celebration-dot';
+            dot.style.left = `${centerX}px`;
+            dot.style.top = `${centerY}px`;
+            dot.style.backgroundColor = colors[i % colors.length];
+            dot.style.setProperty('--dx', `${(Math.random() - 0.5) * 180}px`);
+            dot.style.setProperty('--dy', `${(Math.random() - 0.7) * 160}px`);
+            layer.appendChild(dot);
+        }
+
+        document.body.appendChild(layer);
+        setTimeout(() => layer.remove(), 700);
     }
 
     calculateOverallStreak() {
@@ -1693,7 +1788,8 @@ class HabitTracker {
         if (!expFill || !expValue || !freezeCount) return;
 
         const totalCompletions = this.habits.reduce((sum, h) => sum + h.completedDates.length, 0);
-        this.currentExp = totalCompletions * 10;
+        const consistencyBonus = this.calculatePerfectDayStreak() * 5;
+        this.currentExp = (totalCompletions * 10) + consistencyBonus;
         const levelExp = this.currentExp % this.expLevelSize;
         const level = Math.floor(this.currentExp / this.expLevelSize) + 1;
         const percent = Math.min(100, (levelExp / this.expLevelSize) * 100);
