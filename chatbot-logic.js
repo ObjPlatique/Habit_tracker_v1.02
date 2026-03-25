@@ -4,7 +4,7 @@
  * and API interactions.
  */
 (function () {
-  class HabitChatbot {
+  class HabitChatbotEngine {
     constructor() {
       this.ui = new window.ChatbotUI();
       this.historyKey = 'habit_chat_history';
@@ -314,7 +314,5 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    window.habitChatbot = new HabitChatbot();
-  });
+  window.HabitChatbotEngine = HabitChatbotEngine;
 })();
