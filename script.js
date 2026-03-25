@@ -241,6 +241,7 @@ class HabitTracker {
         const normalized = { ...habit };
         normalized.type = normalized.type === 'quit' ? 'quit' : 'build';
         normalized.completedDates = Array.isArray(normalized.completedDates) ? normalized.completedDates : [];
+        normalized.skippedDates = Array.isArray(normalized.skippedDates) ? normalized.skippedDates : [];
         normalized.completionTimestamps = Array.isArray(normalized.completionTimestamps) ? normalized.completionTimestamps : [];
         normalized.reminder = {
             ...this.getDefaultReminderSettings(),
@@ -255,6 +256,7 @@ class HabitTracker {
         document.getElementById('habitInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addHabit();
         });
+        document.getElementById('quickAddFab').addEventListener('click', () => this.focusQuickAdd());
 
         // Header buttons
         document.getElementById('saveBtn').addEventListener('click', () => this.manualSave());
@@ -461,21 +463,28 @@ class HabitTracker {
 
         dailyGrid.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
+            const isSkipped = this.isSkippedToday(habit);
             const typeMeta = this.getHabitTypeMeta(habit);
             return `
-                <div class="daily-habit-item ${isCompleted ? 'completed' : 'missed'} ${typeMeta.className}">
-                    <div>
+                <div class="daily-habit-item ${isCompleted ? 'completed' : isSkipped ? 'skipped' : 'missed'} ${typeMeta.className}" data-habit-id="${habit.id}">
+                    <div class="daily-main-action" onclick="app.toggleHabitCompletion(${habit.id})">
                         <div class="daily-habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-type-chip ${typeMeta.className}">${typeMeta.icon} ${typeMeta.label}</div>
                         <div class="daily-habit-category ${habit.category}">${habit.category}</div>
                     </div>
+                    <div class="daily-actions">
                     <button class="daily-check-btn ${isCompleted ? 'completed' : ''} ${typeMeta.className}" 
                             onclick="app.toggleHabitCompletion(${habit.id})">
                         ${this.getHabitActionText(habit, isCompleted)}
                     </button>
+                    <button class="daily-skip-btn ${isSkipped ? 'active' : ''}" onclick="app.skipHabitToday(${habit.id})">
+                        ${isSkipped ? 'Skipped' : 'Skip'}
+                    </button>
+                    </div>
                 </div>
             `;
         }).join('');
+        this.initializeSwipeActions();
     }
 
     // Weekly Tracker
@@ -1272,6 +1281,7 @@ class HabitTracker {
             type,
             createdDate: new Date().toISOString(),
             completedDates: [],
+            skippedDates: [],
             completionTimestamps: [],
             reminder: this.getDefaultReminderSettings(),
             streak: 0
@@ -1322,6 +1332,7 @@ class HabitTracker {
             this.showToast(this.getHabitTypeMessage(habit, 'reset'), 'info');
         } else {
             habit.completedDates.push(today);
+            habit.skippedDates = habit.skippedDates.filter(date => date !== today);
             habit.completionTimestamps.push(new Date().toISOString());
             this.showToast(this.getHabitTypeMessage(habit, 'success'), 'success');
             this.setRandomMotivationMessage();
@@ -1440,6 +1451,70 @@ class HabitTracker {
     isCompletedToday(habit) {
         const today = this.getDateString(new Date());
         return habit.completedDates.includes(today);
+    }
+
+    isSkippedToday(habit) {
+        const today = this.getDateString(new Date());
+        return (habit.skippedDates || []).includes(today);
+    }
+
+    skipHabitToday(id) {
+        const habit = this.habits.find(h => h.id === id);
+        if (!habit) return;
+
+        const today = this.getDateString(new Date());
+        habit.skippedDates = Array.isArray(habit.skippedDates) ? habit.skippedDates : [];
+        const skipIndex = habit.skippedDates.indexOf(today);
+
+        if (skipIndex > -1) {
+            habit.skippedDates.splice(skipIndex, 1);
+            this.showToast(`Removed skip for "${habit.name}"`, 'info');
+        } else {
+            habit.skippedDates.push(today);
+            habit.completedDates = habit.completedDates.filter(date => date !== today);
+            habit.completionTimestamps = habit.completionTimestamps.filter((isoTs) => !isoTs.startsWith(today));
+            this.showToast(`⏭️ "${habit.name}" skipped for today`, 'info');
+        }
+
+        habit.streak = this.calculateStreak(habit);
+        this.saveHabits();
+        this.renderHabits();
+        this.renderDailyView();
+        this.updateStats();
+        this.updateCharts();
+        this.renderWeeklyTracker();
+        this.renderMonthlyTracker();
+        this.renderDailyChallenges();
+    }
+
+    focusQuickAdd() {
+        const input = document.getElementById('habitInput');
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.select();
+    }
+
+    initializeSwipeActions() {
+        const cards = document.querySelectorAll('.daily-habit-item');
+        cards.forEach(card => {
+            let startX = 0;
+            card.addEventListener('touchstart', (event) => {
+                startX = event.changedTouches[0].clientX;
+            }, { passive: true });
+
+            card.addEventListener('touchend', (event) => {
+                const endX = event.changedTouches[0].clientX;
+                const deltaX = endX - startX;
+                const habitId = Number(card.dataset.habitId);
+
+                if (Math.abs(deltaX) < 70 || !habitId) return;
+                if (deltaX > 0) {
+                    this.toggleHabitCompletion(habitId);
+                } else {
+                    this.skipHabitToday(habitId);
+                }
+            }, { passive: true });
+        });
     }
 
     getHabitTypeMeta(habit) {
@@ -2272,6 +2347,7 @@ class HabitTracker {
                     type: 'build',
                     createdDate: new Date().toISOString(),
                     completedDates: [],
+                    skippedDates: [],
                     completionTimestamps: [],
                     reminder: {
                         ...this.getDefaultReminderSettings(),
