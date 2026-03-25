@@ -2083,6 +2083,10 @@ body.sidebar-collapsed .quick-sidebar {
     width: 100%;
 }
 
+.sidebar-action-btn {
+    width: 100%;
+}
+
 .exp-menu {
     flex: 0 1 280px;
     min-width: 230px;
