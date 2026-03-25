@@ -1,6 +1,7 @@
 // Habit Tracker Application with Routine View Menu and Day Details
 // Initialize Language Manager
 const langManager = new LanguageManager();
+window.langManager = langManager;
 
 // Automatic timezone detection from browser locale/location
 function detectUserTimezone() {
