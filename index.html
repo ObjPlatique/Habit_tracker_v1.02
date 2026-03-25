@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Habit Tracker</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -320,7 +321,27 @@
         </div>
     </div>
 
+    
+
+    <!-- AI Chatbot -->
+    <button id="chatbotToggleBtn" class="chatbot-toggle-btn" title="AI Habit Coach">💬</button>
+    <section id="chatbotWindow" class="chatbot-window" aria-label="AI habit chatbot">
+        <header class="chatbot-header">
+            <h3>AI Habit Coach</h3>
+            <button id="chatbotCloseBtn" class="chatbot-close-btn" aria-label="Close chatbot">×</button>
+        </header>
+        <div id="chatbotMessages" class="chatbot-messages"></div>
+        <div id="chatbotTyping" class="chatbot-typing">AI is typing...</div>
+        <form id="chatbotForm" class="chatbot-form">
+            <input id="chatbotInput" class="chatbot-input" type="text" placeholder="Ask about habits, goals, or motivation..." required>
+            <button type="submit" class="chatbot-send-btn">Send</button>
+        </form>
+    </section>
+
     <script src="languages.js"></script>
     <script src="script.js"></script>
+    <script src="chatbot-ui.js"></script>
+    <script src="chatbot-api.js"></script>
+    <script src="chatbot-logic.js"></script>
 </body>
 </html>
