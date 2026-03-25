@@ -15,7 +15,7 @@ function registerServiceWorker() {
 
     window.addEventListener('load', async () => {
         try {
-            const registration = await navigator.serviceWorker.register('./sw.js');
+            const registration = await navigator.serviceWorker.register('./service-worker.js');
             if ('sync' in registration) {
                 registration.sync.register('habit-sync').catch(() => {
                     // Ignore registration errors in unsupported browsers.
@@ -98,6 +98,60 @@ function applyTheme(theme, { persist = false } = {}) {
     }
 }
 
+function setupPwaInstallPrompt() {
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+    if (!installBtn) return;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+        installBtn.style.display = 'inline-flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+    });
+}
+
+function setupFullscreenMode() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (!fullscreenBtn) return;
+
+    const updateFullscreenState = () => {
+        const isFullscreen = Boolean(document.fullscreenElement);
+        fullscreenBtn.setAttribute('aria-pressed', String(isFullscreen));
+        fullscreenBtn.textContent = isFullscreen ? '🡼 Exit Fullscreen' : '⛶ Fullscreen';
+    };
+
+    fullscreenBtn.addEventListener('click', async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        } catch (error) {
+            console.warn('Fullscreen request failed:', error);
+        } finally {
+            updateFullscreenState();
+        }
+    });
+
+    document.addEventListener('fullscreenchange', updateFullscreenState);
+    updateFullscreenState();
+}
+
 function initializeTheme() {
     const savedTheme = getSavedThemePreference();
     const activeTheme = savedTheme || detectSystemTheme();
@@ -140,6 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initializeTheme();
+    setupPwaInstallPrompt();
+    setupFullscreenMode();
 
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
     if (savedSidebarState !== null) {
