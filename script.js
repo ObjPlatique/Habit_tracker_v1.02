@@ -684,7 +684,16 @@ class HabitTracker {
         if (!topHabitsList) return;
 
         if (this.habits.length === 0) {
-            topHabitsList.innerHTML = `<p class="empty-message">${langManager.get('noHabits')}</p>`;
+            topHabitsList.innerHTML = `
+                <div class="habit-empty-state compact">
+                    <div class="empty-illustration" aria-hidden="true">🌱</div>
+                    <h3>Build your momentum</h3>
+                    <p>${langManager.get('noHabits')}</p>
+                    <div class="empty-state-actions">
+                        <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">Create your first habit</button>
+                    </div>
+                </div>
+            `;
             return;
         }
 
@@ -724,10 +733,14 @@ class HabitTracker {
 
         if (this.habits.length === 0) {
             dailyGrid.innerHTML = `
-                <div class="daily-empty-state">
-                    <h3>No habits yet</h3>
-                    <p>Add your first habit and we will guide your next step automatically.</p>
-                    <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">+ Add first habit</button>
+                <div class="habit-empty-state">
+                    <div class="empty-illustration" aria-hidden="true">🚀</div>
+                    <h3>Your habit journey starts today</h3>
+                    <p>Add your first tiny habit and turn consistency into confidence.</p>
+                    <div class="empty-state-actions">
+                        <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">Create your first habit</button>
+                        <button class="quick-action-btn secondary" onclick="app.openGuidedSetup()">Use guided setup</button>
+                    </div>
                 </div>
             `;
             if (nextActionText) nextActionText.textContent = 'Create your first habit to start a focused routine.';
@@ -1794,6 +1807,17 @@ class HabitTracker {
         input.select();
     }
 
+    openGuidedSetup() {
+        const modal = document.getElementById('onboardingModal');
+        if (!modal) return;
+
+        this.onboardingStep = 1;
+        this.syncOnboardingInputsFromData();
+        this.updateOnboardingUI();
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
     initializeMicroInteractions() {
         document.addEventListener('pointerdown', (event) => {
             const button = event.target.closest('button, .quick-action-btn');
@@ -1879,10 +1903,14 @@ class HabitTracker {
         
         if (this.habits.length === 0) {
             habitsList.innerHTML = `
-                <div class="daily-empty-state">
-                    <h3>No saved habits</h3>
-                    <p>Start with one tiny habit. We will suggest your next action automatically.</p>
-                    <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">Create first habit</button>
+                <div class="habit-empty-state">
+                    <div class="empty-illustration" aria-hidden="true">✨</div>
+                    <h3>No habits yet, but your progress can start now</h3>
+                    <p>Pick one small habit and let daily wins compound over time.</p>
+                    <div class="empty-state-actions">
+                        <button class="quick-action-btn primary" onclick="app.focusQuickAdd()">Create your first habit</button>
+                        <button class="quick-action-btn secondary" onclick="app.openGuidedSetup()">Use guided setup</button>
+                    </div>
                 </div>
             `;
             return;
