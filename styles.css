@@ -2240,3 +2240,320 @@ body.sidebar-collapsed .quick-sidebar {
     width: 100%;
     height: 100%;
 }
+
+/* ========================================
+   Responsive overhaul (mobile-first)
+   - Base styles target 320px+ devices
+   - Tablet enhancements at 768px+
+   - Desktop enhancements at 1024px+
+======================================== */
+
+/* 320px+ (base / mobile-first) */
+@media (min-width: 320px) {
+    html {
+        font-size: 15px;
+    }
+
+    body {
+        padding: 0.75rem;
+        padding-top: 6.5rem;
+        padding-bottom: 5.5rem;
+    }
+
+    .page-content {
+        margin-left: 0;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+
+    header h1 {
+        font-size: 1.75rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .input-section,
+    .filter-section,
+    .header-actions,
+    .habit-actions,
+    .daily-actions,
+    .routine-nav-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .habit-input,
+    .category-select,
+    .habit-type-select,
+    .search-input,
+    .category-filter,
+    .add-btn,
+    .btn,
+    .quick-action-btn,
+    .routine-btn,
+    .save-btn,
+    .export-btn,
+    .import-btn,
+    .reset-btn,
+    .month-btn,
+    .daily-check-btn,
+    .daily-skip-btn {
+        width: 100%;
+        min-height: 2.9rem;
+        font-size: 1rem;
+    }
+
+    .stats-section {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    /* Show fewer dashboard items on mobile */
+    .stats-section .stat-card:nth-child(n+3) {
+        display: none;
+    }
+
+    .motivation-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .charts-container,
+    .analytics-metrics-grid,
+    .analytics-visual-grid,
+    .analytics-charts-grid,
+    .insights-grid,
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-section,
+    .routine-section,
+    .reminders-section,
+    .insights-section,
+    .habit-item,
+    .daily-habit-item,
+    .analytics-card,
+    .analytics-chart-card {
+        padding: 1rem;
+    }
+
+    .chart-container {
+        height: 220px;
+    }
+
+    .chart-container-pie {
+        height: 210px;
+    }
+
+    .routine-menu {
+        position: fixed;
+        top: 0.65rem;
+        left: 0.75rem;
+        right: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 0.85rem;
+        display: grid;
+        gap: 0.75rem;
+        z-index: 460;
+    }
+
+    .exp-menu {
+        max-width: 100%;
+    }
+
+    .routine-menu-toggle {
+        border: 1px solid var(--border-color);
+        border-radius: 0.65rem;
+        background: var(--primary-color);
+        color: #fff;
+        padding: 0.7rem 0.9rem;
+        font-weight: 700;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .routine-nav-links {
+        display: none;
+    }
+
+    .routine-nav-links.open {
+        display: flex;
+    }
+
+    /* Mobile sticky bottom navigation */
+    .mobile-bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--card-bg);
+        border-top: 1px solid var(--border-color);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.35rem;
+        padding: 0.45rem;
+        z-index: 520;
+    }
+
+    .mobile-bottom-nav .routine-btn {
+        padding: 0.4rem 0.2rem;
+        min-height: 3rem;
+        border-radius: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.86rem;
+    }
+
+    .mobile-bottom-nav .routine-btn span {
+        font-size: 0.72rem;
+        line-height: 1.1;
+    }
+
+    .analytics-advanced {
+        border: 1px solid var(--border-color);
+        border-radius: 0.85rem;
+        background: var(--card-bg);
+        padding: 0.25rem 0.75rem 0.75rem;
+    }
+
+    .analytics-advanced summary {
+        cursor: pointer;
+        padding: 0.75rem 0;
+        font-weight: 700;
+        font-size: 0.96rem;
+    }
+
+    .quick-sidebar {
+        width: min(84vw, 300px);
+    }
+}
+
+/* 768px+ (tablet) */
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+
+    body {
+        padding: 1rem;
+        padding-top: 7rem;
+        padding-bottom: 1rem;
+    }
+
+    .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1.35rem;
+    }
+
+    .input-section,
+    .filter-section {
+        flex-direction: row;
+        align-items: stretch;
+    }
+
+    .habit-item,
+    .daily-habit-item {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .stats-section {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats-section .stat-card:nth-child(n+3) {
+        display: block;
+    }
+
+    .charts-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .routine-menu {
+        left: 1rem;
+        right: 1rem;
+    }
+
+    .routine-menu-toggle {
+        display: none;
+    }
+
+    .routine-nav-links {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .routine-nav-links .routine-btn {
+        width: auto;
+        min-width: 9rem;
+    }
+
+    .mobile-bottom-nav {
+        display: none;
+    }
+
+    .analytics-advanced {
+        padding: 0.35rem 0.85rem 0.85rem;
+    }
+}
+
+/* 1024px+ (desktop) */
+@media (min-width: 1024px) {
+    body {
+        padding-top: 1rem;
+    }
+
+    .page-content {
+        margin-left: 310px;
+    }
+
+    body.sidebar-collapsed .page-content {
+        margin-left: 0;
+    }
+
+    .container {
+        max-width: 1200px;
+        padding: 1.75rem;
+    }
+
+    .routine-menu {
+        position: sticky;
+        top: 0.5rem;
+        left: auto;
+        right: auto;
+    }
+
+    .header-actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .stats-section {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .analytics-metrics-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .analytics-charts-grid,
+    .analytics-visual-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analytics-advanced[open] {
+        padding-bottom: 1rem;
+    }
+}
