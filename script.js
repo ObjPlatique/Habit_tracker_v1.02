@@ -47,6 +47,8 @@ class HabitTracker {
         this.habits = this.loadHabits();
         this.lineChart = null;
         this.pieChart = null;
+        this.weeklyAnalyticsChart = null;
+        this.monthlyAnalyticsChart = null;
         this.currentExp = 0;
         this.expLevelSize = 100;
         this.currentChartRange = 7;
@@ -58,11 +60,13 @@ class HabitTracker {
         this.renderHabits();
         this.updateStats();
         this.initializeCharts();
+        this.initializeAnalyticsCharts();
         this.renderTopHabitsSidebar();
         this.updateExpBar();
         this.renderDailyView();
         this.renderWeeklyTracker();
         this.renderMonthlyTracker();
+        this.updateAnalyticsDashboard();
         this.setupAutoSave();
         this.renderDailyChallenges();
     }
@@ -715,6 +719,7 @@ class HabitTracker {
     updateCharts() {
         this.updateLineChart();
         this.updatePieChart();
+        this.updateAnalyticsDashboard();
     }
 
     updateLineChart() {
@@ -732,6 +737,193 @@ class HabitTracker {
             
             this.pieChart.data.datasets[0].data = [completed, pending];
             this.pieChart.update();
+        }
+    }
+
+
+    initializeAnalyticsCharts() {
+        const weeklyCtx = document.getElementById('weeklyAnalyticsChart')?.getContext('2d');
+        const monthlyCtx = document.getElementById('monthlyAnalyticsChart')?.getContext('2d');
+
+        if (weeklyCtx) {
+            this.weeklyAnalyticsChart = new Chart(weeklyCtx, {
+                type: 'bar',
+                data: this.getWeeklyAnalyticsData(),
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+        }
+
+        if (monthlyCtx) {
+            this.monthlyAnalyticsChart = new Chart(monthlyCtx, {
+                type: 'line',
+                data: this.getMonthlyAnalyticsData(),
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+        }
+    }
+
+    getWeeklyAnalyticsData() {
+        const today = new Date();
+        const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayTotals = Array(7).fill(0);
+        const dayPossible = Array(7).fill(0);
+
+        for (let i = 0; i < 28; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const dayIndex = date.getDay();
+            const dateStr = this.getDateString(date);
+
+            dayPossible[dayIndex] += this.habits.length;
+            dayTotals[dayIndex] += this.habits.filter(h => h.completedDates.includes(dateStr)).length;
+        }
+
+        const completionRates = dayTotals.map((count, index) =>
+            dayPossible[index] > 0 ? Math.round((count / dayPossible[index]) * 100) : 0
+        );
+
+        return {
+            labels,
+            datasets: [{
+                data: completionRates,
+                backgroundColor: '#6366f1'
+            }]
+        };
+    }
+
+    getMonthlyAnalyticsData() {
+        const now = new Date();
+        const labels = [];
+        const data = [];
+
+        for (let i = 5; i >= 0; i--) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'short' });
+            const year = monthDate.getFullYear();
+            const month = monthDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let completed = 0;
+            let possible = 0;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                if (date > now) break;
+
+                const dateStr = this.getDateString(date);
+                possible += this.habits.length;
+                completed += this.habits.filter(h => h.completedDates.includes(dateStr)).length;
+            }
+
+            labels.push(monthLabel);
+            data.push(possible > 0 ? Math.round((completed / possible) * 100) : 0);
+        }
+
+        return {
+            labels,
+            datasets: [{
+                data,
+                borderColor: '#ec4899',
+                backgroundColor: 'rgba(236, 72, 153, 0.15)',
+                fill: true,
+                tension: 0.35
+            }]
+        };
+    }
+
+    calculateLongestStreak() {
+        let longest = 0;
+
+        this.habits.forEach(habit => {
+            const dates = [...new Set(habit.completedDates)]
+                .map(date => new Date(date))
+                .sort((a, b) => a - b);
+
+            let current = 0;
+            let prev = null;
+
+            dates.forEach(date => {
+                if (!prev) {
+                    current = 1;
+                } else {
+                    const diff = Math.round((date - prev) / (1000 * 60 * 60 * 24));
+                    current = diff === 1 ? current + 1 : 1;
+                }
+                longest = Math.max(longest, current);
+                prev = date;
+            });
+        });
+
+        return longest;
+    }
+
+    getAnalyticsInsights(weeklyRates) {
+        const insights = [];
+        const weekdayAvg = Math.round((weeklyRates.slice(1, 6).reduce((sum, v) => sum + v, 0)) / 5);
+        const weekendAvg = Math.round((weeklyRates[0] + weeklyRates[6]) / 2);
+
+        if (weekdayAvg > weekendAvg + 10) {
+            insights.push('You are most consistent on weekdays.');
+        } else if (weekendAvg > weekdayAvg + 10) {
+            insights.push('You perform better on weekends.');
+        }
+
+        const sundayRate = weeklyRates[0] || 0;
+        if (sundayRate <= 40) {
+            insights.push('Your streak drops on Sundays. Consider a lighter Sunday habit.');
+        }
+
+        const strongestDayIndex = weeklyRates.indexOf(Math.max(...weeklyRates));
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        insights.push(`Your strongest day is ${dayNames[strongestDayIndex]}.`);
+
+        if (insights.length === 1) {
+            insights.push('Your completion pattern is steady. Keep your current routine.');
+        }
+
+        return insights;
+    }
+
+    updateAnalyticsDashboard() {
+        const completionRate = this.calculateSuccessRate();
+        const currentStreak = this.calculateOverallStreak();
+        const longestStreak = this.calculateLongestStreak();
+
+        const completionEl = document.getElementById('analyticsCompletionRate');
+        const currentEl = document.getElementById('analyticsCurrentStreak');
+        const longestEl = document.getElementById('analyticsLongestStreak');
+
+        if (completionEl) completionEl.textContent = `${Math.round(completionRate)}%`;
+        if (currentEl) currentEl.textContent = `${currentStreak} day${currentStreak === 1 ? '' : 's'}`;
+        if (longestEl) longestEl.textContent = `${longestStreak} day${longestStreak === 1 ? '' : 's'}`;
+
+        const weeklyData = this.getWeeklyAnalyticsData();
+        const monthlyData = this.getMonthlyAnalyticsData();
+
+        if (this.weeklyAnalyticsChart) {
+            this.weeklyAnalyticsChart.data = weeklyData;
+            this.weeklyAnalyticsChart.update();
+        }
+
+        if (this.monthlyAnalyticsChart) {
+            this.monthlyAnalyticsChart.data = monthlyData;
+            this.monthlyAnalyticsChart.update();
+        }
+
+        const insightsEl = document.getElementById('analyticsInsights');
+        if (insightsEl) {
+            const insights = this.getAnalyticsInsights(weeklyData.datasets[0].data || []);
+            insightsEl.innerHTML = insights.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
         }
     }
 
@@ -979,6 +1171,7 @@ class HabitTracker {
         this.updateInsights();
         this.updateExpBar();
         this.renderTopHabitsSidebar();
+        this.updateAnalyticsDashboard();
     }
 
     calculateOverallStreak() {

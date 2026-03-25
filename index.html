@@ -118,6 +118,7 @@
             <button class="routine-btn active" data-view="daily" data-i18n="daily">📋 Daily</button>
             <button class="routine-btn" data-view="weekly" data-i18n="weekly">📅 Weekly</button>
             <button class="routine-btn" data-view="monthly" data-i18n="monthly">📆 Monthly</button>
+            <button class="routine-btn" data-view="analytics">📊 Analytics</button>
         </div>
 
         <!-- Charts Section -->
@@ -196,7 +197,56 @@
             </div>
         </div>
 
-        <!-- Quick Actions Section -->
+
+
+        <!-- Analytics View -->
+        <div class="routine-view hidden" id="analyticsView">
+            <div class="analytics-dashboard">
+                <div class="analytics-header">
+                    <h2>📊 Analytics Dashboard</h2>
+                    <p>Simple insights from your local habit history</p>
+                </div>
+
+                <div class="analytics-metrics-grid">
+                    <div class="analytics-card">
+                        <h3>Completion Rate</h3>
+                        <p id="analyticsCompletionRate" class="analytics-value">0%</p>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Current Streak</h3>
+                        <p id="analyticsCurrentStreak" class="analytics-value">0 days</p>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Longest Streak</h3>
+                        <p id="analyticsLongestStreak" class="analytics-value">0 days</p>
+                    </div>
+                </div>
+
+                <div class="analytics-charts-grid">
+                    <div class="analytics-chart-card">
+                        <h3>Weekly Completion (Bar)</h3>
+                        <div class="analytics-chart-wrap">
+                            <canvas id="weeklyAnalyticsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="analytics-chart-card">
+                        <h3>Monthly Completion (Line)</h3>
+                        <div class="analytics-chart-wrap">
+                            <canvas id="monthlyAnalyticsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-card analytics-insights-card">
+                    <h3>Generated Insights</h3>
+                    <ul id="analyticsInsights" class="analytics-insights-list">
+                        <li>Add habits and complete them to see insights.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+                <!-- Quick Actions Section -->
         <div class="reminders-section">
             <h2 data-i18n="quickActions">⏰ Quick Actions</h2>
             <div class="quick-actions">

@@ -1687,3 +1687,53 @@ body.sidebar-collapsed .quick-sidebar {
         transform: translateX(0);
     }
 }
+
+/* Analytics Dashboard */
+.analytics-dashboard {
+    display: grid;
+    gap: 20px;
+}
+
+.analytics-header p {
+    color: var(--text-light);
+    margin-top: 6px;
+}
+
+.analytics-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.analytics-card,
+.analytics-chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.analytics-value {
+    margin-top: 8px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.analytics-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.analytics-chart-wrap {
+    height: 240px;
+    margin-top: 10px;
+}
+
+.analytics-insights-list {
+    margin-top: 10px;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+}
