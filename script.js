@@ -620,6 +620,11 @@ class HabitTracker {
         modal.classList.add('show');
 
         if (chartType === 'line') {
+            if (typeof Chart === 'undefined') {
+                title.textContent = 'Progress Analytics';
+                container.innerHTML = '<p class="empty-message">Line chart unavailable (Chart.js failed to load).</p>';
+                return;
+            }
             title.textContent = `Progress Analytics (${this.currentChartRange} Days)`;
             const canvas = document.createElement('canvas');
             canvas.id = 'expandedLineChart';
@@ -665,6 +670,11 @@ class HabitTracker {
             }, 100);
 
         } else if (chartType === 'pie') {
+            if (typeof Chart === 'undefined') {
+                title.textContent = "Today's Completion Rate";
+                container.innerHTML = '<p class="empty-message">Pie chart unavailable (Chart.js failed to load).</p>';
+                return;
+            }
             title.textContent = "Today's Completion Rate";
             const canvas = document.createElement('canvas');
             canvas.id = 'expandedPieChart';
@@ -796,12 +806,35 @@ class HabitTracker {
     }
 
     initializeCharts() {
+        if (typeof Chart === 'undefined') {
+            this.lineChart = null;
+            this.pieChart = null;
+            this.showChartUnavailableState('progressChart', 'Line chart unavailable (Chart.js failed to load).');
+            this.showChartUnavailableState('completionChart', 'Pie chart unavailable (Chart.js failed to load).');
+            return;
+        }
         this.initializeLineChart();
         this.initializePieChart();
     }
 
+    showChartUnavailableState(canvasId, message) {
+        const canvas = document.getElementById(canvasId);
+        const container = canvas?.parentElement;
+        if (!container) return;
+        container.innerHTML = `<p class="empty-message">${this.escapeHtml(message)}</p>`;
+    }
+
     initializeLineChart() {
-        const ctx = document.getElementById('progressChart').getContext('2d');
+        const chartCanvas = document.getElementById('progressChart');
+        if (!chartCanvas || typeof Chart === 'undefined') return;
+
+        const ctx = chartCanvas.getContext('2d');
+        if (!ctx) return;
+
+        if (this.lineChart) {
+            this.lineChart.destroy();
+        }
+
         this.lineChart = new Chart(ctx, {
             type: 'line',
             data: this.getLineChartData(this.currentChartRange),
@@ -839,7 +872,16 @@ class HabitTracker {
     }
 
     initializePieChart() {
-        const ctx = document.getElementById('completionChart').getContext('2d');
+        const chartCanvas = document.getElementById('completionChart');
+        if (!chartCanvas || typeof Chart === 'undefined') return;
+
+        const ctx = chartCanvas.getContext('2d');
+        if (!ctx) return;
+
+        if (this.pieChart) {
+            this.pieChart.destroy();
+        }
+
         const today = this.getDateString(new Date());
         const completed = this.habits.filter(h => h.completedDates.includes(today)).length;
         const pending = this.habits.length - completed;
@@ -929,6 +971,11 @@ class HabitTracker {
 
 
     initializeAnalyticsCharts() {
+        if (typeof Chart === 'undefined') {
+            this.monthlyAnalyticsChart = null;
+            return;
+        }
+
         const weeklyCtx = document.getElementById('weeklyTrendCanvas')?.getContext('2d');
         const monthlyCtx = document.getElementById('monthlyAnalyticsChart')?.getContext('2d');
         const heatmapContainer = document.getElementById('calendarHeatmap');
