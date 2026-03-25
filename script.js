@@ -37,6 +37,132 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('sidebar-collapsed');
     }
 });
+
+class CalendarHeatmap {
+    constructor(container) {
+        this.container = container;
+    }
+
+    update(cells) {
+        this.container.innerHTML = cells.map((cell, index) => {
+            const classes = ['heatmap-cell'];
+            if (cell.completed === 0 && cell.missed > 0) classes.push('missed');
+            if (cell.completed > 0) classes.push('completed');
+            if (cell.ratio >= 0.75) classes.push('high');
+            else if (cell.ratio >= 0.4) classes.push('medium');
+            else if (cell.ratio > 0) classes.push('low');
+
+            return `<button class="${classes.join(' ')}" style="animation-delay:${index * 7}ms" title="${cell.label}: ${cell.completed} completed / ${cell.missed} missed" aria-label="${cell.label}: ${cell.completed} completed, ${cell.missed} missed"></button>`;
+        }).join('');
+    }
+}
+
+class ProgressRings {
+    constructor(container) {
+        this.container = container;
+        this.radius = 34;
+        this.circumference = 2 * Math.PI * this.radius;
+    }
+
+    update(items) {
+        this.container.innerHTML = items.map(item => {
+            const bounded = Math.max(0, Math.min(100, item.value));
+            const dashOffset = this.circumference * (1 - (bounded / 100));
+
+            return `
+                <div class="ring-card">
+                    <svg viewBox="0 0 100 100" class="progress-ring" aria-label="${item.label} ${Math.round(bounded)} percent">
+                        <circle class="ring-bg" cx="50" cy="50" r="${this.radius}"></circle>
+                        <circle class="ring-value" cx="50" cy="50" r="${this.radius}" style="stroke-dasharray:${this.circumference.toFixed(2)};stroke-dashoffset:${dashOffset.toFixed(2)}"></circle>
+                    </svg>
+                    <div class="ring-text">${Math.round(bounded)}%</div>
+                    <div class="ring-label">${item.label}</div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+class WeeklyTrendChart {
+    constructor(ctx) {
+        this.ctx = ctx;
+        this.canvas = ctx.canvas;
+    }
+
+    update(labels, values) {
+        const width = this.canvas.clientWidth || 600;
+        const height = this.canvas.clientHeight || 240;
+        const dpr = window.devicePixelRatio || 1;
+
+        this.canvas.width = width * dpr;
+        this.canvas.height = height * dpr;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        this.ctx.clearRect(0, 0, width, height);
+
+        const padding = 24;
+        const graphWidth = width - (padding * 2);
+        const graphHeight = height - (padding * 2);
+        const max = 100;
+        const stepX = labels.length > 1 ? graphWidth / (labels.length - 1) : graphWidth;
+
+        this.ctx.strokeStyle = 'rgba(229, 231, 235, 1)';
+        this.ctx.lineWidth = 1;
+        [0, 25, 50, 75, 100].forEach(mark => {
+            const y = padding + graphHeight - ((mark / max) * graphHeight);
+            this.ctx.beginPath();
+            this.ctx.moveTo(padding, y);
+            this.ctx.lineTo(width - padding, y);
+            this.ctx.stroke();
+        });
+
+        this.ctx.beginPath();
+        values.forEach((value, index) => {
+            const x = padding + (stepX * index);
+            const y = padding + graphHeight - ((value / max) * graphHeight);
+            if (index === 0) this.ctx.moveTo(x, y);
+            else this.ctx.lineTo(x, y);
+        });
+        this.ctx.strokeStyle = '#6366f1';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        values.forEach((value, index) => {
+            const x = padding + (stepX * index);
+            const y = padding + graphHeight - ((value / max) * graphHeight);
+            this.ctx.fillStyle = value >= 60 ? '#10b981' : '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.fillStyle = '#6b7280';
+            this.ctx.font = '12px Segoe UI';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(labels[index], x, height - 6);
+        });
+    }
+}
+
+class StreakVisualizer {
+    constructor(container) {
+        this.container = container;
+    }
+
+    update(data) {
+        const ratio = data.longest > 0 ? Math.min(100, (data.current / data.longest) * 100) : 0;
+        this.container.innerHTML = `
+            <div class="streak-fire">🔥 ${data.current} day streak</div>
+            <div class="streak-track">
+                <div class="streak-fill" style="width:${ratio}%"></div>
+            </div>
+            <div class="streak-meta">
+                <span>Current: ${data.current}</span>
+                <span>Best: ${data.longest}</span>
+            </div>
+        `;
+    }
+}
+
 class HabitTracker {
     
     constructor() {
@@ -54,8 +180,11 @@ class HabitTracker {
         ];
         this.lineChart = null;
         this.pieChart = null;
-        this.weeklyAnalyticsChart = null;
+        this.weeklyTrendChart = null;
         this.monthlyAnalyticsChart = null;
+        this.calendarHeatmap = null;
+        this.progressRings = null;
+        this.streakVisualizer = null;
         this.currentExp = 0;
         this.expLevelSize = 100;
         this.currentChartRange = 7;
@@ -205,6 +334,7 @@ class HabitTracker {
         }
 
         window.addEventListener('beforeunload', () => this.saveHabits());
+        window.addEventListener('resize', () => this.updateAnalyticsDashboard());
     }
 
     switchView(view) {
@@ -294,7 +424,7 @@ class HabitTracker {
         dailyGrid.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
             return `
-                <div class="daily-habit-item ${isCompleted ? 'completed' : ''}">
+                <div class="daily-habit-item ${isCompleted ? 'completed' : 'missed'}">
                     <div>
                         <div class="daily-habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="daily-habit-category ${habit.category}">${habit.category}</div>
@@ -777,20 +907,26 @@ class HabitTracker {
 
 
     initializeAnalyticsCharts() {
-        const weeklyCtx = document.getElementById('weeklyAnalyticsChart')?.getContext('2d');
+        const weeklyCtx = document.getElementById('weeklyTrendCanvas')?.getContext('2d');
         const monthlyCtx = document.getElementById('monthlyAnalyticsChart')?.getContext('2d');
+        const heatmapContainer = document.getElementById('calendarHeatmap');
+        const ringsContainer = document.getElementById('progressRings');
+        const streakContainer = document.getElementById('streakVisual');
+
+        if (heatmapContainer) {
+            this.calendarHeatmap = new CalendarHeatmap(heatmapContainer);
+        }
+
+        if (ringsContainer) {
+            this.progressRings = new ProgressRings(ringsContainer);
+        }
+
+        if (streakContainer) {
+            this.streakVisualizer = new StreakVisualizer(streakContainer);
+        }
 
         if (weeklyCtx) {
-            this.weeklyAnalyticsChart = new Chart(weeklyCtx, {
-                type: 'bar',
-                data: this.getWeeklyAnalyticsData(),
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, max: 100 } }
-                }
-            });
+            this.weeklyTrendChart = new WeeklyTrendChart(weeklyCtx);
         }
 
         if (monthlyCtx) {
@@ -945,9 +1081,8 @@ class HabitTracker {
         const weeklyData = this.getWeeklyAnalyticsData();
         const monthlyData = this.getMonthlyAnalyticsData();
 
-        if (this.weeklyAnalyticsChart) {
-            this.weeklyAnalyticsChart.data = weeklyData;
-            this.weeklyAnalyticsChart.update();
+        if (this.weeklyTrendChart) {
+            this.weeklyTrendChart.update(weeklyData.labels, weeklyData.datasets[0].data || []);
         }
 
         if (this.monthlyAnalyticsChart) {
@@ -960,6 +1095,73 @@ class HabitTracker {
             const insights = this.getAnalyticsInsights(weeklyData.datasets[0].data || []);
             insightsEl.innerHTML = insights.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
         }
+
+        if (this.calendarHeatmap) {
+            this.calendarHeatmap.update(this.getHeatmapData());
+        }
+
+        if (this.progressRings) {
+            this.progressRings.update(this.getProgressRingData());
+        }
+
+        if (this.streakVisualizer) {
+            this.streakVisualizer.update(this.getStreakVisualData());
+        }
+    }
+
+    getHeatmapData(days = 84) {
+        const cells = [];
+        const today = new Date();
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const dateStr = this.getDateString(date);
+            const completed = this.habits.filter(h => h.completedDates.includes(dateStr)).length;
+            const missed = Math.max(0, this.habits.length - completed);
+            const ratio = this.habits.length ? completed / this.habits.length : 0;
+
+            cells.push({
+                date: dateStr,
+                label: `${dayNames[date.getDay()]} ${dateStr}`,
+                completed,
+                missed,
+                ratio
+            });
+        }
+
+        return cells;
+    }
+
+    getProgressRingData() {
+        const totalHabits = this.habits.length;
+        const today = this.getDateString(new Date());
+        const completedToday = this.habits.filter(h => h.completedDates.includes(today)).length;
+        const completionRate = this.calculateSuccessRate();
+        const weeklyAverage = this.calculateWeeklyAverage();
+
+        return [
+            {
+                label: 'Today',
+                value: totalHabits ? (completedToday / totalHabits) * 100 : 0
+            },
+            {
+                label: 'Weekly Avg',
+                value: weeklyAverage
+            },
+            {
+                label: 'Overall',
+                value: completionRate
+            }
+        ];
+    }
+
+    getStreakVisualData() {
+        return {
+            current: this.calculateOverallStreak(),
+            longest: this.calculateLongestStreak()
+        };
     }
 
     addHabit() {
@@ -1167,13 +1369,14 @@ class HabitTracker {
 
         habitsList.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
+            const stateClass = isCompleted ? 'completed' : 'missed';
             const progress = this.getProgressPercentage(habit);
             const suggestion = this.getBestReminderTime(habit);
             const reminderStatus = habit.reminder.enabled ? `On at ${habit.reminder.time}` : 'Off';
             const reminderHistory = habit.reminder.history.slice(-5).reverse();
             
             return `
-                <div class="habit-item ${isCompleted ? 'completed' : ''}" data-habit-id="${habit.id}">
+                <div class="habit-item ${stateClass}" data-habit-id="${habit.id}">
                     <div class="habit-info">
                         <div class="habit-name">${this.escapeHtml(habit.name)}</div>
                         <div class="habit-meta">

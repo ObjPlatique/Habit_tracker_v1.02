@@ -498,6 +498,11 @@ header h1 {
     border-left-color: var(--success-color);
 }
 
+.daily-habit-item.missed {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));
+    border-left-color: var(--danger-color);
+}
+
 .daily-habit-item:hover {
     transform: translateX(5px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -865,6 +870,11 @@ header h1 {
 .habit-item.completed {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
     border-left-color: var(--success-color);
+}
+
+.habit-item.missed {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));
+    border-left-color: var(--danger-color);
 }
 
 .habit-item.hidden {
@@ -1786,4 +1796,127 @@ body.sidebar-collapsed .quick-sidebar {
     padding-left: 18px;
     display: grid;
     gap: 8px;
+}
+
+.analytics-helper-text {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    margin-top: 6px;
+}
+
+.analytics-visual-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.calendar-heatmap {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.heatmap-cell {
+    border: none;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: #e5e7eb;
+    transition: transform 0.2s ease, background-color 0.3s ease;
+    animation: fadeIn 0.3s ease both;
+}
+
+.heatmap-cell.completed.low { background: #bbf7d0; }
+.heatmap-cell.completed.medium { background: #4ade80; }
+.heatmap-cell.completed.high { background: #16a34a; }
+.heatmap-cell.missed { background: #fca5a5; }
+
+.heatmap-cell:hover {
+    transform: scale(1.15);
+}
+
+.progress-rings {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ring-card {
+    text-align: center;
+}
+
+.progress-ring {
+    width: 90px;
+    height: 90px;
+    transform: rotate(-90deg);
+}
+
+.ring-bg,
+.ring-value {
+    fill: none;
+    stroke-width: 10;
+}
+
+.ring-bg {
+    stroke: #e5e7eb;
+}
+
+.ring-value {
+    stroke: #10b981;
+    transition: stroke-dashoffset 0.45s ease;
+    stroke-linecap: round;
+}
+
+.ring-text {
+    margin-top: -62px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.ring-label {
+    margin-top: 34px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.streak-visual {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.streak-fire {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #f97316;
+}
+
+.streak-track {
+    height: 12px;
+    background: #fee2e2;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.streak-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #10b981);
+    transition: width 0.45s ease;
+}
+
+.streak-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.analytics-chart-wrap-custom {
+    display: flex;
+}
+
+.analytics-chart-wrap-custom canvas {
+    width: 100%;
+    height: 100%;
 }

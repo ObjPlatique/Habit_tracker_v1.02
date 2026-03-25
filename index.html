@@ -222,11 +222,27 @@
                     </div>
                 </div>
 
+                <div class="analytics-visual-grid">
+                    <div class="analytics-card">
+                        <h3>Habit Calendar Heatmap</h3>
+                        <p class="analytics-helper-text">Green = completed, Red = missed</p>
+                        <div id="calendarHeatmap" class="calendar-heatmap"></div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Progress Rings</h3>
+                        <div id="progressRings" class="progress-rings"></div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Streak Visual</h3>
+                        <div id="streakVisual" class="streak-visual"></div>
+                    </div>
+                </div>
+
                 <div class="analytics-charts-grid">
                     <div class="analytics-chart-card">
-                        <h3>Weekly Completion (Bar)</h3>
-                        <div class="analytics-chart-wrap">
-                            <canvas id="weeklyAnalyticsChart"></canvas>
+                        <h3>Weekly Trend</h3>
+                        <div class="analytics-chart-wrap analytics-chart-wrap-custom">
+                            <canvas id="weeklyTrendCanvas"></canvas>
                         </div>
                     </div>
                     <div class="analytics-chart-card">
