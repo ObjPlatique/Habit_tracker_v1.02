@@ -120,6 +120,40 @@
     display: none !important;
 }
 
+.network-status {
+    position: fixed;
+    top: 14px;
+    right: 20px;
+    z-index: 1200;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.network-status.online {
+    background: #059669;
+}
+
+.network-status.offline {
+    background: #dc2626;
+}
+
+.network-status.syncing {
+    background: #2563eb;
+}
+
+@media (max-width: 768px) {
+    .network-status {
+        left: 50%;
+        right: auto;
+        top: 8px;
+        transform: translateX(-50%);
+    }
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
