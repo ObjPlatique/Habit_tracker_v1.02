@@ -35,29 +35,34 @@ function updateNetworkStatusIndicator({ online = navigator.onLine, syncing = fal
     const el = getNetworkStatusElement();
     if (!el) return;
 
+    let nextClass = 'network-status online';
+    let nextText = '🟢 Online mode';
+
     if (!online) {
-        el.className = 'network-status offline';
-        el.textContent = '🔴 Offline mode';
-        return;
+        nextClass = 'network-status offline';
+        nextText = '🔴 Offline mode';
+    } else if (syncing) {
+        nextClass = 'network-status syncing';
+        nextText = '🔄 Syncing local changes...';
+    } else if (pendingSync) {
+        nextClass = 'network-status syncing';
+        nextText = '🟡 Online (sync pending)';
     }
 
-    if (syncing) {
-        el.className = 'network-status syncing';
-        el.textContent = '🔄 Syncing local changes...';
-        return;
-    }
-
-    if (pendingSync) {
-        el.className = 'network-status syncing';
-        el.textContent = '🟡 Online (sync pending)';
-        return;
-    }
-
-    el.className = 'network-status online';
-    el.textContent = '🟢 Online mode';
+    if (el.className === nextClass && el.textContent === nextText) return;
+    el.className = nextClass;
+    el.textContent = nextText;
 }
 
 const THEME_STORAGE_KEY = 'themePreference';
+
+function debounce(fn, delay = 200) {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+}
 
 function getSavedThemePreference() {
     const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem('theme');
@@ -315,6 +320,9 @@ class HabitTracker {
         this.calendarHeatmap = null;
         this.progressRings = null;
         this.streakVisualizer = null;
+        this.chartsInitialized = false;
+        this.analyticsInitialized = false;
+        this.lastHabitsMarkup = '';
         this.currentExp = 0;
         this.expLevelSize = 100;
         this.currentChartRange = 7;
@@ -327,8 +335,7 @@ class HabitTracker {
         this.initializeConnectivitySync();
         this.renderHabits();
         this.updateStats();
-        this.initializeCharts();
-        this.initializeAnalyticsCharts();
+        this.setupLazyComponents();
         this.renderTopHabitsSidebar();
         this.updateExpBar();
         this.renderDailyView();
@@ -340,6 +347,49 @@ class HabitTracker {
         this.initializeReminderSystem();
         this.initializeOnboarding();
         this.updateMotivationPanel();
+    }
+
+    setupLazyComponents() {
+        const chartsSection = document.getElementById('chartsSection');
+        const analyticsView = document.getElementById('analyticsView');
+
+        if (!('IntersectionObserver' in window)) {
+            this.ensureChartsInitialized();
+            this.ensureAnalyticsInitialized();
+            return;
+        }
+
+        const lazyObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+
+                if (entry.target === chartsSection) {
+                    this.ensureChartsInitialized();
+                }
+
+                if (entry.target === analyticsView) {
+                    this.ensureAnalyticsInitialized();
+                }
+
+                lazyObserver.unobserve(entry.target);
+            });
+        }, { rootMargin: '200px' });
+
+        if (chartsSection) lazyObserver.observe(chartsSection);
+        if (analyticsView) lazyObserver.observe(analyticsView);
+    }
+
+    ensureChartsInitialized() {
+        if (this.chartsInitialized) return;
+        this.initializeCharts();
+        this.chartsInitialized = true;
+    }
+
+    ensureAnalyticsInitialized() {
+        if (this.analyticsInitialized) return;
+        this.initializeAnalyticsCharts();
+        this.analyticsInitialized = true;
+        this.updateAnalyticsDashboard();
     }
 
     initializeReminderSystem() {
@@ -412,7 +462,8 @@ class HabitTracker {
         document.getElementById('sortBtn').addEventListener('click', () => this.sortByStreak());
 
         // Search and filter
-        document.getElementById('searchInput').addEventListener('input', () => this.filterHabits());
+        this.debouncedFilterHabits = debounce(() => this.filterHabits(), 180);
+        document.getElementById('searchInput').addEventListener('input', this.debouncedFilterHabits);
         document.getElementById('categoryFilter').addEventListener('change', () => this.filterHabits());
 
         // Chart range buttons
@@ -502,10 +553,11 @@ class HabitTracker {
         });
 
         window.addEventListener('beforeunload', () => this.saveHabits());
-        window.addEventListener('resize', () => {
+        this.debouncedResizeHandler = debounce(() => {
             this.updateAnalyticsDashboard();
             this.syncResponsivePanels();
-        });
+        }, 150);
+        window.addEventListener('resize', this.debouncedResizeHandler);
 
         this.syncResponsivePanels();
     }
@@ -584,6 +636,10 @@ class HabitTracker {
 
         if (view === 'daily') {
             setTimeout(() => this.autoFocusTodayHabit(), 80);
+        }
+
+        if (view === 'analytics') {
+            this.ensureAnalyticsInitialized();
         }
 
         this.showToast(`Switched to ${view.charAt(0).toUpperCase() + view.slice(1)} view`, 'info');
@@ -1282,6 +1338,7 @@ class HabitTracker {
     }
 
     updateCharts() {
+        this.ensureChartsInitialized();
         this.updateLineChart();
         this.updatePieChart();
         this.updateAnalyticsDashboard();
@@ -1729,12 +1786,10 @@ class HabitTracker {
         const categoryFilter = document.getElementById('categoryFilter').value;
 
         document.querySelectorAll('.habit-item').forEach(item => {
-            const habitName = item.querySelector('.habit-name').textContent.toLowerCase();
-            const categoryBadge = item.querySelector('.category-badge').textContent;
-
+            const habitName = item.dataset.habitName || '';
+            const habitCategory = item.dataset.habitCategory || '';
             const matchesSearch = habitName.includes(searchTerm);
-            const matchesCategory = categoryFilter === 'all' || categoryBadge.toLowerCase() === categoryFilter;
-
+            const matchesCategory = categoryFilter === 'all' || habitCategory === categoryFilter;
             item.classList.toggle('hidden', !(matchesSearch && matchesCategory));
         });
     }
@@ -1902,6 +1957,7 @@ class HabitTracker {
         const habitsList = document.getElementById('habitsList');
         
         if (this.habits.length === 0) {
+            this.lastHabitsMarkup = '';
             habitsList.innerHTML = `
                 <div class="habit-empty-state">
                     <div class="empty-illustration" aria-hidden="true">✨</div>
@@ -1917,7 +1973,7 @@ class HabitTracker {
         }
 
         const importantHabit = this.getMostImportantHabit();
-        habitsList.innerHTML = this.habits.map(habit => {
+        const nextMarkup = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
             const stateClass = isCompleted ? 'completed' : 'missed';
             const typeMeta = this.getHabitTypeMeta(habit);
@@ -1929,7 +1985,7 @@ class HabitTracker {
             const isJustCompleted = this.lastCompletedHabitId === habit.id && isCompleted;
             const isImportant = importantHabit?.id === habit.id;
             return `
-                <div class="habit-item ${stateClass} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''} ${isImportant ? 'important-habit' : ''}" data-habit-id="${habit.id}">
+                <div class="habit-item ${stateClass} ${typeMeta.className} ${isJustCompleted ? 'just-completed' : ''} ${isImportant ? 'important-habit' : ''}" data-habit-id="${habit.id}" data-habit-name="${this.escapeHtml(habit.name.toLowerCase())}" data-habit-category="${this.escapeHtml(habit.category.toLowerCase())}">
                     <div class="habit-info">
                         <div class="habit-name">${this.escapeHtml(habit.name)}${isImportant ? '<span class="priority-chip">Top priority</span>' : ''}</div>
                         <div class="habit-meta">
@@ -1982,6 +2038,13 @@ class HabitTracker {
                 </div>
             `;
         }).join('');
+
+        if (this.lastHabitsMarkup !== nextMarkup) {
+            habitsList.innerHTML = nextMarkup;
+            this.lastHabitsMarkup = nextMarkup;
+        }
+
+        this.filterHabits();
     }
 
     toggleReminderEdit(id) {
