@@ -45,6 +45,13 @@ class HabitTracker {
         this.lastAwardedLevel = 1;
         this.frozenDates = [];
         this.habits = this.loadHabits();
+        this.motivationalMessages = [
+            'You are one small action away from progress 🌱',
+            'Tiny wins build unstoppable momentum 💪',
+            'Future you will thank you for this habit ✨',
+            'Keep the streak warm—you have got this 🔥',
+            'A gentle reminder: consistency beats intensity 🌟'
+        ];
         this.lineChart = null;
         this.pieChart = null;
         this.weeklyAnalyticsChart = null;
@@ -69,6 +76,34 @@ class HabitTracker {
         this.updateAnalyticsDashboard();
         this.setupAutoSave();
         this.renderDailyChallenges();
+        this.initializeReminderSystem();
+    }
+
+    initializeReminderSystem() {
+        this.habits = this.habits.map((habit) => this.normalizeHabitData(habit));
+        this.checkReminders();
+        setInterval(() => this.checkReminders(), 30 * 1000);
+    }
+
+    getDefaultReminderSettings() {
+        return {
+            enabled: false,
+            time: '20:00',
+            history: [],
+            lastTriggeredDate: null
+        };
+    }
+
+    normalizeHabitData(habit) {
+        const normalized = { ...habit };
+        normalized.completedDates = Array.isArray(normalized.completedDates) ? normalized.completedDates : [];
+        normalized.completionTimestamps = Array.isArray(normalized.completionTimestamps) ? normalized.completionTimestamps : [];
+        normalized.reminder = {
+            ...this.getDefaultReminderSettings(),
+            ...(normalized.reminder || {})
+        };
+        normalized.reminder.history = Array.isArray(normalized.reminder.history) ? normalized.reminder.history : [];
+        return normalized;
     }
 
     initializeEventListeners() {
@@ -943,6 +978,8 @@ class HabitTracker {
             category: category,
             createdDate: new Date().toISOString(),
             completedDates: [],
+            completionTimestamps: [],
+            reminder: this.getDefaultReminderSettings(),
             streak: 0
         };
 
@@ -986,9 +1023,11 @@ class HabitTracker {
 
         if (index > -1) {
             habit.completedDates.splice(index, 1);
+            habit.completionTimestamps = habit.completionTimestamps.filter((isoTs) => !isoTs.startsWith(today));
             this.showToast(`${habit.name} marked incomplete`, 'info');
         } else {
             habit.completedDates.push(today);
+            habit.completionTimestamps.push(new Date().toISOString());
             this.showToast(`✅ Great! ${habit.name} completed!`, 'success');
         }
 
@@ -1010,6 +1049,7 @@ class HabitTracker {
         this.habits.forEach(habit => {
             if (!habit.completedDates.includes(today)) {
                 habit.completedDates.push(today);
+                habit.completionTimestamps.push(new Date().toISOString());
                 habit.streak = this.calculateStreak(habit);
                 count++;
             }
@@ -1037,6 +1077,7 @@ class HabitTracker {
                 const index = habit.completedDates.indexOf(today);
                 if (index > -1) {
                     habit.completedDates.splice(index, 1);
+                    habit.completionTimestamps = habit.completionTimestamps.filter((isoTs) => !isoTs.startsWith(today));
                     habit.streak = this.calculateStreak(habit);
                 }
             });
@@ -1127,6 +1168,9 @@ class HabitTracker {
         habitsList.innerHTML = this.habits.map(habit => {
             const isCompleted = this.isCompletedToday(habit);
             const progress = this.getProgressPercentage(habit);
+            const suggestion = this.getBestReminderTime(habit);
+            const reminderStatus = habit.reminder.enabled ? `On at ${habit.reminder.time}` : 'Off';
+            const reminderHistory = habit.reminder.history.slice(-5).reverse();
             
             return `
                 <div class="habit-item ${isCompleted ? 'completed' : ''}" data-habit-id="${habit.id}">
@@ -1135,6 +1179,7 @@ class HabitTracker {
                         <div class="habit-meta">
                             <span class="category-badge ${habit.category}">${habit.category}</span>
                             <span>Completed: ${habit.completedDates.length} days</span>
+                            <span class="reminder-pill">🔔 ${this.escapeHtml(reminderStatus)}</span>
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: ${progress}%"></div>
                             </div>
@@ -1148,11 +1193,137 @@ class HabitTracker {
                         <button class="btn btn-check" onclick="app.toggleHabitCompletion(${habit.id})">
                             ${isCompleted ? '✓ Done' : 'Mark Done'}
                         </button>
+                        <button class="btn btn-edit" onclick="app.toggleReminderEdit(${habit.id})">Edit</button>
                         <button class="btn btn-delete" onclick="app.deleteHabit(${habit.id})">Delete</button>
+                    </div>
+                </div>
+                <div class="habit-reminder-editor hidden" id="reminderEditor-${habit.id}">
+                    <h4>Reminder Settings</h4>
+                    <div class="reminder-form-row">
+                        <label>
+                            <input type="checkbox" id="reminderEnabled-${habit.id}" ${habit.reminder.enabled ? 'checked' : ''}>
+                            Enable notifications
+                        </label>
+                    </div>
+                    <div class="reminder-form-row">
+                        <label for="reminderTime-${habit.id}">Reminder time</label>
+                        <input type="time" id="reminderTime-${habit.id}" value="${this.escapeHtml(habit.reminder.time)}">
+                        <button class="btn btn-suggest" onclick="app.applySuggestedReminder(${habit.id})">Use smart suggestion (${this.escapeHtml(suggestion)})</button>
+                    </div>
+                    <div class="reminder-form-row">
+                        <button class="btn btn-check" onclick="app.saveReminderSettings(${habit.id})">Save reminder</button>
+                        <button class="btn btn-permission" onclick="app.requestNotificationPermission()">Enable browser permission</button>
+                    </div>
+                    <div class="reminder-history">
+                        <strong>Reminder history</strong>
+                        ${reminderHistory.length === 0 ? '<p class="empty-message">No reminder events yet.</p>' : `
+                            <ul>
+                                ${reminderHistory.map(entry => `<li>${this.escapeHtml(new Date(entry.triggeredAt).toLocaleString())} — ${this.escapeHtml(entry.message)}</li>`).join('')}
+                            </ul>
+                        `}
                     </div>
                 </div>
             `;
         }).join('');
+    }
+
+    toggleReminderEdit(id) {
+        const panel = document.getElementById(`reminderEditor-${id}`);
+        if (panel) panel.classList.toggle('hidden');
+    }
+
+    saveReminderSettings(id) {
+        const habit = this.habits.find(h => h.id === id);
+        if (!habit) return;
+
+        const timeInput = document.getElementById(`reminderTime-${id}`);
+        const enabledInput = document.getElementById(`reminderEnabled-${id}`);
+        habit.reminder.time = timeInput?.value || habit.reminder.time;
+        habit.reminder.enabled = !!enabledInput?.checked;
+
+        this.saveHabits();
+        this.renderHabits();
+        this.showToast(`Reminder updated for ${habit.name}`, 'success');
+    }
+
+    applySuggestedReminder(id) {
+        const habit = this.habits.find(h => h.id === id);
+        if (!habit) return;
+        const suggestion = this.getBestReminderTime(habit);
+        const timeInput = document.getElementById(`reminderTime-${id}`);
+        if (timeInput) timeInput.value = suggestion;
+    }
+
+    getBestReminderTime(habit) {
+        const timestamps = (habit.completionTimestamps || [])
+            .map((ts) => new Date(ts))
+            .filter((date) => !Number.isNaN(date.getTime()));
+
+        if (timestamps.length < 3) {
+            return habit.reminder?.time || '20:00';
+        }
+
+        const minutes = timestamps
+            .map((date) => date.getHours() * 60 + date.getMinutes())
+            .sort((a, b) => a - b);
+        const medianMinutes = minutes[Math.floor(minutes.length / 2)];
+        const hours = String(Math.floor(medianMinutes / 60)).padStart(2, '0');
+        const mins = String(medianMinutes % 60).padStart(2, '0');
+        return `${hours}:${mins}`;
+    }
+
+    requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            this.showToast('This browser does not support notifications.', 'error');
+            return;
+        }
+
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                this.showToast('Browser notifications enabled!', 'success');
+            } else {
+                this.showToast('Notification permission was not granted.', 'info');
+            }
+        });
+    }
+
+    checkReminders() {
+        const now = new Date();
+        const today = this.getDateString(now);
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        this.habits.forEach((habit) => {
+            const reminder = habit.reminder || this.getDefaultReminderSettings();
+            if (!reminder.enabled) return;
+            if (habit.completedDates.includes(today)) return;
+
+            const [hours, mins] = (reminder.time || '20:00').split(':').map(Number);
+            const reminderMinutes = (hours * 60) + mins;
+            if (currentMinutes < reminderMinutes) return;
+            if (reminder.lastTriggeredDate === today) return;
+
+            this.sendHabitReminder(habit);
+            habit.reminder.lastTriggeredDate = today;
+        });
+
+        this.saveHabits();
+    }
+
+    sendHabitReminder(habit) {
+        const message = this.motivationalMessages[Math.floor(Math.random() * this.motivationalMessages.length)];
+        const body = `Time for "${habit.name}". ${message}`;
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Habit reminder', { body });
+        } else {
+            this.showToast(`🔔 ${body}`, 'info');
+        }
+
+        habit.reminder.history.push({
+            triggeredAt: new Date().toISOString(),
+            message: body
+        });
+        habit.reminder.history = habit.reminder.history.slice(-30);
     }
 
     updateStats() {
