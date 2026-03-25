@@ -175,3 +175,36 @@ body.dark-theme .chatbot-input {
   color: #e5e7eb;
   border-color: #374151;
 }
+
+.chatbot-quick-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 10px;
+  background: var(--card-bg);
+}
+
+.chatbot-quick-btn {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: #eef2ff;
+  color: var(--primary-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.chatbot-quick-btn:hover {
+  background: #e0e7ff;
+}
+
+body.dark-theme .chatbot-quick-actions {
+  background: #111827;
+}
+
+body.dark-theme .chatbot-quick-btn {
+  background: #1f2937;
+  border-color: #374151;
+  color: #c7d2fe;
+}
