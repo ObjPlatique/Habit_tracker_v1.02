@@ -9,6 +9,59 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <div id="onboardingModal" class="onboarding-modal hidden" aria-hidden="true">
+        <div class="onboarding-card">
+            <div class="onboarding-header">
+                <h2>Welcome! Let's personalize your habits</h2>
+                <p>3 quick steps to generate your starter plan.</p>
+                <div class="onboarding-progress-wrap">
+                    <div class="onboarding-progress-label"><span id="onboardingProgressText">Step 1 of 3</span></div>
+                    <div class="onboarding-progress-track">
+                        <div id="onboardingProgressFill" class="onboarding-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="onboardingStep1" class="onboarding-step">
+                <h3>1) What are your goals?</h3>
+                <p>Select at least one:</p>
+                <div class="onboarding-goals-grid">
+                    <label><input type="checkbox" value="fitness"> Fitness</label>
+                    <label><input type="checkbox" value="study"> Study</label>
+                    <label><input type="checkbox" value="productivity"> Productivity</label>
+                    <label><input type="checkbox" value="wellness"> Wellness</label>
+                </div>
+            </div>
+
+            <div id="onboardingStep2" class="onboarding-step hidden">
+                <h3>2) Preferred time of day</h3>
+                <div class="onboarding-choice-group">
+                    <label><input type="radio" name="onboardingTime" value="morning" checked> Morning</label>
+                    <label><input type="radio" name="onboardingTime" value="afternoon"> Afternoon</label>
+                    <label><input type="radio" name="onboardingTime" value="evening"> Evening</label>
+                </div>
+            </div>
+
+            <div id="onboardingStep3" class="onboarding-step hidden">
+                <h3>3) Choose your difficulty</h3>
+                <div class="onboarding-choice-group">
+                    <label><input type="radio" name="onboardingDifficulty" value="easy" checked> Easy</label>
+                    <label><input type="radio" name="onboardingDifficulty" value="medium"> Medium</label>
+                    <label><input type="radio" name="onboardingDifficulty" value="hard"> Hard</label>
+                </div>
+                <div class="starter-preview">
+                    <h4>Starter habit suggestions</h4>
+                    <ul id="starterHabitsPreview"></ul>
+                </div>
+            </div>
+
+            <div class="onboarding-actions">
+                <button id="onboardingBackBtn" class="quick-action-btn secondary hidden">Back</button>
+                <button id="onboardingNextBtn" class="quick-action-btn primary">Next</button>
+                <button id="onboardingSkipBtn" class="quick-action-btn tertiary">Skip setup</button>
+            </div>
+        </div>
+    </div>
     <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="Toggle sidebar">☰</button>
     <aside id="quickSidebar" class="quick-sidebar">
         <div class="sidebar-header">

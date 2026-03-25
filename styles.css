@@ -258,6 +258,120 @@ header h1 {
     transform: translateY(0);
 }
 
+.onboarding-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+    padding: 20px;
+}
+
+.onboarding-card {
+    width: min(680px, 100%);
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.onboarding-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.onboarding-header p {
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+.onboarding-progress-wrap {
+    margin-bottom: 16px;
+}
+
+.onboarding-progress-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.onboarding-progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+}
+
+.onboarding-progress-fill {
+    height: 100%;
+    width: 33.33%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    transition: width 0.25s ease;
+}
+
+.onboarding-step h3 {
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+}
+
+.onboarding-step p {
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.onboarding-goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+}
+
+.onboarding-goals-grid label,
+.onboarding-choice-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f9fafb;
+}
+
+.onboarding-choice-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.starter-preview {
+    margin-top: 14px;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.starter-preview h4 {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+}
+
+.starter-preview ul {
+    margin-left: 16px;
+    color: #334155;
+    display: grid;
+    gap: 4px;
+}
+
+.onboarding-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
 .stats-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

@@ -171,6 +171,14 @@ class HabitTracker {
         this.maxFreezeCharges = 2;
         this.lastAwardedLevel = 1;
         this.frozenDates = [];
+        this.onboardingStorageKey = 'habitOnboardingPrefs';
+        this.onboardingCompletedKey = 'habitOnboardingCompleted';
+        this.onboardingStep = 1;
+        this.onboardingData = {
+            goals: [],
+            preferredTime: 'morning',
+            difficulty: 'easy'
+        };
         this.habits = this.loadHabits();
         this.motivationalMessages = [
             'You are one small action away from progress 🌱',
@@ -207,6 +215,7 @@ class HabitTracker {
         this.setupAutoSave();
         this.renderDailyChallenges();
         this.initializeReminderSystem();
+        this.initializeOnboarding();
     }
 
     initializeReminderSystem() {
@@ -296,18 +305,18 @@ class HabitTracker {
         // Help modal
         const helpBtn = document.getElementById('helpBtn');
         const helpModal = document.getElementById('helpModal');
-        const closeBtn = document.querySelector('.close');
+        const helpCloseBtn = helpModal?.querySelector('.close');
 
-        helpBtn.addEventListener('click', () => {
+        helpBtn?.addEventListener('click', () => {
             helpModal.classList.add('show');
         });
 
-        closeBtn.addEventListener('click', () => {
+        helpCloseBtn?.addEventListener('click', () => {
             helpModal.classList.remove('show');
         });
 
         // Day details modal
-        const dayDetailsClose = document.querySelectorAll('.close')[0];
+        const dayDetailsClose = document.querySelector('#dayDetailsModal .close');
         if (dayDetailsClose) {
             dayDetailsClose.addEventListener('click', () => {
                 document.getElementById('dayDetailsModal').classList.remove('show');
@@ -333,6 +342,17 @@ class HabitTracker {
                 document.getElementById('expandedModal').classList.remove('show');
             });
         }
+
+        // Onboarding controls
+        document.getElementById('onboardingNextBtn')?.addEventListener('click', () => this.handleOnboardingNext());
+        document.getElementById('onboardingBackBtn')?.addEventListener('click', () => this.handleOnboardingBack());
+        document.getElementById('onboardingSkipBtn')?.addEventListener('click', () => this.finishOnboarding(true));
+        document.querySelectorAll('input[name="onboardingDifficulty"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                this.onboardingData.difficulty = input.value;
+                this.renderStarterPreview();
+            });
+        });
 
         window.addEventListener('beforeunload', () => this.saveHabits());
         window.addEventListener('resize', () => this.updateAnalyticsDashboard());
@@ -815,6 +835,7 @@ class HabitTracker {
                 }
             }
         });
+
     }
 
     initializePieChart() {
@@ -1748,7 +1769,7 @@ class HabitTracker {
                 }
 
                 if (confirm('This will replace your current habits. Continue?')) {
-                    this.habits = importedData.habits;
+                    this.habits = importedData.habits.map((habit) => this.normalizeHabitData(habit));
                     this.saveHabits();
                     this.renderHabits();
                     this.renderDailyView();
@@ -1801,8 +1822,20 @@ class HabitTracker {
         const stored = localStorage.getItem('habits');
         this.freezeCharges = parseInt(localStorage.getItem('freezeCharges') || '0', 10);
         this.lastAwardedLevel = parseInt(localStorage.getItem('lastAwardedLevel') || '1', 10);
-        this.frozenDates = JSON.parse(localStorage.getItem('frozenDates') || '[]');
-        return stored ? JSON.parse(stored) : [];
+        try {
+            this.frozenDates = JSON.parse(localStorage.getItem('frozenDates') || '[]');
+        } catch (error) {
+            this.frozenDates = [];
+        }
+
+        if (!stored) return [];
+        try {
+            const parsedHabits = JSON.parse(stored);
+            return Array.isArray(parsedHabits) ? parsedHabits.map((habit) => this.normalizeHabitData(habit)) : [];
+        } catch (error) {
+            this.showToast('Saved data was corrupted. Starting with a clean habit list.', 'error');
+            return [];
+        }
     }
 
     loadLastSaveTime() {
@@ -1849,6 +1882,203 @@ class HabitTracker {
             : 'Level-up mission: maintain your streak to earn a Freeze charge.');
 
         list.innerHTML = challenges.map(item => `<li>${this.escapeHtml(item)}</li>`).join('');
+    }
+
+    initializeOnboarding() {
+        const modal = document.getElementById('onboardingModal');
+        if (!modal) return;
+
+        const completed = localStorage.getItem(this.onboardingCompletedKey) === 'true';
+        const savedPreferences = localStorage.getItem(this.onboardingStorageKey);
+
+        if (savedPreferences) {
+            try {
+                this.onboardingData = {
+                    ...this.onboardingData,
+                    ...JSON.parse(savedPreferences)
+                };
+            } catch (error) {
+                // Keep defaults if parsing fails
+            }
+        }
+
+        if (completed || this.habits.length > 0) {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            return;
+        }
+
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        this.updateOnboardingUI();
+    }
+
+    handleOnboardingNext() {
+        const goals = Array.from(document.querySelectorAll('#onboardingStep1 input[type="checkbox"]:checked')).map((input) => input.value);
+        const preferredTime = document.querySelector('input[name="onboardingTime"]:checked')?.value || 'morning';
+        const difficulty = document.querySelector('input[name="onboardingDifficulty"]:checked')?.value || 'easy';
+        this.onboardingData = { goals, preferredTime, difficulty };
+
+        if (this.onboardingStep === 1 && goals.length === 0) {
+            this.showToast('Please select at least one goal.', 'info');
+            return;
+        }
+
+        if (this.onboardingStep < 3) {
+            this.onboardingStep += 1;
+            this.updateOnboardingUI();
+            return;
+        }
+
+        this.finishOnboarding(false);
+    }
+
+    handleOnboardingBack() {
+        if (this.onboardingStep <= 1) return;
+        this.onboardingStep -= 1;
+        this.updateOnboardingUI();
+    }
+
+    updateOnboardingUI() {
+        document.querySelectorAll('.onboarding-step').forEach((step, index) => {
+            step.classList.toggle('hidden', (index + 1) !== this.onboardingStep);
+        });
+
+        const progressFill = document.getElementById('onboardingProgressFill');
+        const progressText = document.getElementById('onboardingProgressText');
+        const backBtn = document.getElementById('onboardingBackBtn');
+        const nextBtn = document.getElementById('onboardingNextBtn');
+        if (progressFill) progressFill.style.width = `${(this.onboardingStep / 3) * 100}%`;
+        if (progressText) progressText.textContent = `Step ${this.onboardingStep} of 3`;
+        backBtn?.classList.toggle('hidden', this.onboardingStep === 1);
+        if (nextBtn) nextBtn.textContent = this.onboardingStep === 3 ? 'Finish & create habits' : 'Next';
+        this.renderStarterPreview();
+    }
+
+    renderStarterPreview() {
+        const preview = document.getElementById('starterHabitsPreview');
+        if (!preview) return;
+
+        const goals = Array.from(document.querySelectorAll('#onboardingStep1 input[type="checkbox"]:checked')).map((input) => input.value);
+        const preferredTime = document.querySelector('input[name="onboardingTime"]:checked')?.value || this.onboardingData.preferredTime;
+        const difficulty = document.querySelector('input[name="onboardingDifficulty"]:checked')?.value || this.onboardingData.difficulty;
+        const habits = this.generateStarterHabits({ goals, preferredTime, difficulty });
+        preview.innerHTML = habits.map((habit) => `<li>${this.escapeHtml(habit.name)}</li>`).join('');
+    }
+
+    generateStarterHabits(preferences) {
+        const planSize = preferences.difficulty === 'hard' ? 5 : preferences.difficulty === 'medium' ? 4 : 3;
+        const templates = {
+            fitness: {
+                easy: [{ name: '10-minute walk', category: 'health' }, { name: 'Morning stretch (5 min)', category: 'health' }],
+                medium: [{ name: '30-minute workout', category: 'health' }, { name: 'Bodyweight routine (15 min)', category: 'health' }],
+                hard: [{ name: '60-minute training session', category: 'health' }, { name: 'Track calories and hydration', category: 'health' }]
+            },
+            study: {
+                easy: [{ name: 'Read 10 pages', category: 'learning' }, { name: 'Review notes for 15 minutes', category: 'learning' }],
+                medium: [{ name: 'Focused study block (45 min)', category: 'learning' }, { name: 'Practice problems for 30 minutes', category: 'learning' }],
+                hard: [{ name: 'Deep study sprint (90 min)', category: 'learning' }, { name: 'Summarize one chapter', category: 'learning' }]
+            },
+            productivity: {
+                easy: [{ name: 'Plan top 3 tasks', category: 'productivity' }, { name: '2-minute inbox cleanup', category: 'productivity' }],
+                medium: [{ name: 'Pomodoro focus session (50 min)', category: 'productivity' }, { name: 'Daily review and prioritization', category: 'productivity' }],
+                hard: [{ name: 'Two deep-work sessions', category: 'productivity' }, { name: 'Zero-inbox challenge', category: 'productivity' }]
+            },
+            wellness: {
+                easy: [{ name: 'Drink 8 glasses of water', category: 'wellness' }, { name: '5-minute breathing session', category: 'wellness' }],
+                medium: [{ name: '20-minute meditation', category: 'wellness' }, { name: 'Digital sunset 1 hour before bed', category: 'wellness' }],
+                hard: [{ name: '30-minute mindfulness practice', category: 'wellness' }, { name: 'Evening journal + gratitude list', category: 'wellness' }]
+            }
+        };
+
+        const fallback = [
+            { name: 'Review your day in 5 minutes', category: 'productivity' },
+            { name: 'Drink water after waking up', category: 'wellness' },
+            { name: 'Move your body for 10 minutes', category: 'health' }
+        ];
+
+        const selectedGoals = preferences.goals.length > 0 ? preferences.goals : ['productivity'];
+        const generated = [];
+
+        selectedGoals.forEach((goal) => {
+            const group = templates[goal]?.[preferences.difficulty] || [];
+            group.forEach((habit) => {
+                generated.push({
+                    ...habit,
+                    name: this.attachPreferredTime(habit.name, preferences.preferredTime)
+                });
+            });
+        });
+
+        fallback.forEach((habit) => generated.push({
+            ...habit,
+            name: this.attachPreferredTime(habit.name, preferences.preferredTime)
+        }));
+
+        const deduped = [];
+        const used = new Set();
+        generated.forEach((habit) => {
+            const key = habit.name.toLowerCase();
+            if (!used.has(key) && deduped.length < planSize) {
+                used.add(key);
+                deduped.push(habit);
+            }
+        });
+
+        return deduped;
+    }
+
+    attachPreferredTime(habitName, preferredTime) {
+        const label = preferredTime.charAt(0).toUpperCase() + preferredTime.slice(1);
+        return `${habitName} (${label})`;
+    }
+
+    finishOnboarding(skipped = false) {
+        const modal = document.getElementById('onboardingModal');
+        if (!modal) return;
+
+        localStorage.setItem(this.onboardingStorageKey, JSON.stringify(this.onboardingData));
+        localStorage.setItem(this.onboardingCompletedKey, 'true');
+
+        if (!skipped) {
+            const starterHabits = this.generateStarterHabits(this.onboardingData);
+            const reminderTimeMap = { morning: '08:00', afternoon: '13:00', evening: '20:00' };
+            const preferredReminderTime = reminderTimeMap[this.onboardingData.preferredTime] || '20:00';
+
+            starterHabits.forEach((starterHabit) => {
+                const alreadyExists = this.habits.some((habit) => habit.name.toLowerCase() === starterHabit.name.toLowerCase());
+                if (alreadyExists) return;
+
+                this.habits.push({
+                    id: Date.now() + Math.floor(Math.random() * 10000),
+                    name: starterHabit.name,
+                    category: starterHabit.category,
+                    createdDate: new Date().toISOString(),
+                    completedDates: [],
+                    completionTimestamps: [],
+                    reminder: {
+                        ...this.getDefaultReminderSettings(),
+                        time: preferredReminderTime
+                    },
+                    streak: 0
+                });
+            });
+
+            this.saveHabits();
+            this.renderHabits();
+            this.renderDailyView();
+            this.updateStats();
+            this.updateCharts();
+            this.renderWeeklyTracker();
+            this.renderMonthlyTracker();
+            this.renderDailyChallenges();
+            this.showToast('Starter habits created from your onboarding preferences!', 'success');
+        } else {
+            this.showToast('Onboarding skipped. You can still add habits manually anytime.', 'info');
+        }
+
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
     }
 }
 
