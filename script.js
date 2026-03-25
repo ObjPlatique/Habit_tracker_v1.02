@@ -297,6 +297,7 @@ class HabitTracker {
         this.lastMotivationMessage = '';
         this.syncPendingKey = 'habitSyncPending';
         this.lastSyncedAtKey = 'habitLastSyncedAt';
+        this.safetyBackupKey = 'habitSafetyBackup';
         this.habits = this.loadHabits();
         this.motivationalMessages = [
             'You are one small action away from progress 🌱',
@@ -383,6 +384,11 @@ class HabitTracker {
         document.getElementById('importBtn').addEventListener('click', () => {
             document.getElementById('fileInput').click();
         });
+        document.getElementById('sidebarExportBtn').addEventListener('click', () => this.exportData());
+        document.getElementById('sidebarImportBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        document.getElementById('sidebarRestoreBtn').addEventListener('click', () => this.restoreSafetyBackup());
         document.getElementById('resetBtn').addEventListener('click', () => this.resetAllData());
         document.getElementById('sidebarResetBtn').addEventListener('click', () => this.resetAllData());
         document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
@@ -2327,7 +2333,10 @@ class HabitTracker {
         const dataToExport = {
             version: '3.0',
             exportDate: new Date().toISOString(),
-            habits: this.habits
+            habits: this.habits,
+            freezeCharges: this.freezeCharges,
+            lastAwardedLevel: this.lastAwardedLevel,
+            frozenDates: this.frozenDates
         };
 
         const dataStr = JSON.stringify(dataToExport, null, 2);
@@ -2345,6 +2354,47 @@ class HabitTracker {
         this.showToast('✅ Data exported successfully!', 'success');
     }
 
+    createSafetyBackup(reason = 'manual') {
+        const snapshot = {
+            version: '3.0',
+            backupDate: new Date().toISOString(),
+            reason,
+            habits: this.habits,
+            freezeCharges: this.freezeCharges,
+            lastAwardedLevel: this.lastAwardedLevel,
+            frozenDates: this.frozenDates
+        };
+        localStorage.setItem(this.safetyBackupKey, JSON.stringify(snapshot));
+        return snapshot;
+    }
+
+    restoreSafetyBackup() {
+        const rawBackup = localStorage.getItem(this.safetyBackupKey);
+        if (!rawBackup) {
+            this.showToast('No safety backup found yet. Import or reset to create one.', 'info');
+            return;
+        }
+
+        if (!confirm('Restore from the latest safety backup? This replaces current data.')) {
+            return;
+        }
+
+        try {
+            const backup = JSON.parse(rawBackup);
+            this.habits = Array.isArray(backup.habits)
+                ? backup.habits.map((habit) => this.normalizeHabitData(habit))
+                : [];
+            this.freezeCharges = parseInt(backup.freezeCharges ?? this.freezeCharges, 10) || 0;
+            this.lastAwardedLevel = parseInt(backup.lastAwardedLevel ?? this.lastAwardedLevel, 10) || 1;
+            this.frozenDates = Array.isArray(backup.frozenDates) ? backup.frozenDates : [];
+            this.saveHabits();
+            this.refreshAllViews();
+            this.showToast('🛟 Safety backup restored successfully!', 'success');
+        } catch (error) {
+            this.showToast('❌ Failed to restore backup: ' + error.message, 'error');
+        }
+    }
+
     importData(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -2359,15 +2409,14 @@ class HabitTracker {
                 }
 
                 if (confirm('This will replace your current habits. Continue?')) {
+                    this.createSafetyBackup('before-import');
                     this.habits = importedData.habits.map((habit) => this.normalizeHabitData(habit));
+                    this.freezeCharges = parseInt(importedData.freezeCharges ?? this.freezeCharges, 10) || 0;
+                    this.lastAwardedLevel = parseInt(importedData.lastAwardedLevel ?? this.lastAwardedLevel, 10) || 1;
+                    this.frozenDates = Array.isArray(importedData.frozenDates) ? importedData.frozenDates : [];
                     this.saveHabits();
-                    this.renderHabits();
-                    this.renderDailyView();
-                    this.updateStats();
-                    this.updateCharts();
-                    this.renderWeeklyTracker();
-                    this.renderMonthlyTracker();
-                    this.showToast('✅ Data imported successfully!', 'success');
+                    this.refreshAllViews();
+                    this.showToast('✅ Data imported successfully! Safety backup created.', 'success');
                 }
             } catch (error) {
                 this.showToast('❌ Error importing file: ' + error.message, 'error');
@@ -2380,18 +2429,26 @@ class HabitTracker {
     resetAllData() {
         if (confirm('⚠️ This will delete ALL your habits. Are you absolutely sure?')) {
             if (confirm('Last confirmation: This cannot be undone!')) {
+                this.createSafetyBackup('before-reset');
                 this.habits = [];
+                this.freezeCharges = 0;
+                this.lastAwardedLevel = 1;
+                this.frozenDates = [];
                 this.saveHabits();
-                this.renderHabits();
-                this.renderDailyView();
-                this.updateStats();
-                this.updateCharts();
-                this.renderWeeklyTracker();
-                this.renderMonthlyTracker();
-                this.renderDailyChallenges();
-                this.showToast('🗑️ All data has been reset!', 'success');
+                this.refreshAllViews();
+                this.showToast('🗑️ All data has been reset! You can restore from safety backup.', 'success');
             }
         }
+    }
+
+    refreshAllViews() {
+        this.renderHabits();
+        this.renderDailyView();
+        this.updateStats();
+        this.updateCharts();
+        this.renderWeeklyTracker();
+        this.renderMonthlyTracker();
+        this.renderDailyChallenges();
     }
 
     setupAutoSave() {
