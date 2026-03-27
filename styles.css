@@ -123,7 +123,7 @@
     --page-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-body[data-theme="dark"] {
+body[data-theme$="-dark"] {
     --bg-color: #111827;
     --card-bg: #1f2937;
     --surface-bg: #111827;
@@ -858,7 +858,7 @@ header h1 {
     flex-wrap: wrap;
 }
 
-body[data-theme="dark"] .empty-illustration {
+body[data-theme$="-dark"] .empty-illustration {
     background: rgba(17, 24, 39, 0.9);
     border-color: rgba(165, 180, 252, 0.4);
 }

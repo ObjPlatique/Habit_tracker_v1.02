@@ -12,6 +12,7 @@
     <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
     <link rel="apple-touch-icon" href="./icons/icon-192.svg">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="themes.css">
     <link rel="stylesheet" href="chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -104,9 +105,26 @@
                     <option value="vie">Tiếng Việt (Vietnamese)</option>
                 </select>
             </div>
-            <div class="sidebar-setting-item">
-                <label for="themeToggle" data-i18n="theme">Dark Theme</label>
-                <input id="themeToggle" type="checkbox">
+            <div class="sidebar-setting-item theme-settings-group">
+                <label for="themeSelect">Theme</label>
+                <select id="themeSelect" class="settings-select" aria-label="Select color theme">
+                    <option value="green">Green (Productivity)</option>
+                    <option value="blue">Blue (Calm/Focus)</option>
+                    <option value="purple">Purple (Creative)</option>
+                </select>
+            </div>
+            <div class="sidebar-setting-item theme-settings-group">
+                <label for="modeSelect">Mode</label>
+                <select id="modeSelect" class="settings-select" aria-label="Select light or dark mode">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+            <div class="theme-preview" id="themePreview" aria-label="Current theme preview">
+                <span class="theme-preview-swatch background" title="Background"></span>
+                <span class="theme-preview-swatch card" title="Card"></span>
+                <span class="theme-preview-swatch primary" title="Primary"></span>
+                <span class="theme-preview-swatch text" title="Text"></span>
             </div>
             <button id="sidebarExportBtn" class="export-btn sidebar-action-btn" title="Export as JSON" data-i18n="export">📥 Export</button>
             <button id="sidebarImportBtn" class="import-btn sidebar-action-btn" title="Import from JSON" data-i18n="import">📤 Import</button>
@@ -121,7 +139,6 @@
             <h1 id="headerTitle">📊 Habit Tracker</h1>
             <p class="subtitle" id="headerSubtitle">Build better habits, one day at a time</p>
             <div class="header-actions">
-                <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme" aria-pressed="false">🌙 Dark</button>
                 <button id="installBtn" class="save-btn" title="Install app to home screen" style="display: none;">📲 Install App</button>
                 <button id="fullscreenBtn" class="save-btn" title="Toggle fullscreen mode" aria-pressed="false">⛶ Fullscreen</button>
                 <button id="saveBtn" class="save-btn" title="Save all changes" data-i18n="save">💾 Save</button>
@@ -544,6 +561,7 @@
     <script src="languages.js"></script>
     <script src="components/habit-item.component.js"></script>
     <script src="components/dashboard.component.js"></script>
+    <script src="theme.js"></script>
     <script src="script.js"></script>
     <script src="chatbot-ui.js"></script>
     <script src="chatbot-api.js"></script>

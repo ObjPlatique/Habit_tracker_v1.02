@@ -1,0 +1,97 @@
+/*
+ * Theme tokens
+ * - Combined theme format: [palette]-[mode]
+ * - Example: green-light, blue-dark
+ */
+
+:root,
+body[data-theme='green-light'] {
+    --bg-color: #f5fbf7;
+    --text-dark: #163322;
+    --primary-color: #2f9e64;
+    --card-bg: #ffffff;
+}
+
+body[data-theme='green-dark'] {
+    --bg-color: #0f1f18;
+    --text-dark: #e6fff1;
+    --primary-color: #43c27d;
+    --card-bg: #193126;
+}
+
+body[data-theme='blue-light'] {
+    --bg-color: #f4f8ff;
+    --text-dark: #13283f;
+    --primary-color: #3b82f6;
+    --card-bg: #ffffff;
+}
+
+body[data-theme='blue-dark'] {
+    --bg-color: #0f1828;
+    --text-dark: #e5efff;
+    --primary-color: #60a5fa;
+    --card-bg: #1a2840;
+}
+
+body[data-theme='purple-light'] {
+    --bg-color: #faf5ff;
+    --text-dark: #32184f;
+    --primary-color: #9333ea;
+    --card-bg: #ffffff;
+}
+
+body[data-theme='purple-dark'] {
+    --bg-color: #1b122a;
+    --text-dark: #f3e8ff;
+    --primary-color: #b983ff;
+    --card-bg: #2a1c40;
+}
+
+/* Shared mode-sensitive neutrals */
+body[data-theme$='-light'] {
+    --surface-bg: var(--bg-color);
+    --text-light: color-mix(in srgb, var(--text-dark) 56%, white);
+    --border-color: color-mix(in srgb, var(--text-dark) 14%, white);
+    --page-gradient: linear-gradient(180deg, color-mix(in srgb, var(--bg-color) 78%, white) 0%, var(--bg-color) 100%);
+}
+
+body[data-theme$='-dark'] {
+    --surface-bg: color-mix(in srgb, var(--bg-color) 82%, black);
+    --text-light: color-mix(in srgb, var(--text-dark) 62%, black);
+    --border-color: color-mix(in srgb, var(--card-bg) 65%, white);
+    --page-gradient: linear-gradient(180deg, color-mix(in srgb, var(--bg-color) 88%, black) 0%, var(--bg-color) 100%);
+}
+
+/* Settings panel theme controls */
+.theme-settings-group {
+    align-items: center;
+}
+
+.theme-preview {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.theme-preview-swatch {
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.theme-preview-swatch.background {
+    background: var(--bg-color);
+}
+
+.theme-preview-swatch.card {
+    background: var(--card-bg);
+}
+
+.theme-preview-swatch.primary {
+    background: var(--primary-color);
+}
+
+.theme-preview-swatch.text {
+    background: var(--text-dark);
+}
