@@ -33,8 +33,9 @@
                 <div class="streak-label">Streak</div>
             </div>
             <div class="habit-actions">
-                <button class="btn btn-check ${typeMeta.className}" onclick="app.toggleHabitCompletion(${habit.id})">
-                    ${this.getHabitActionText(habit, isCompleted)}
+                <button class="btn btn-check ${typeMeta.className}" onclick="app.toggleHabitCompletion(${habit.id})" aria-pressed="${isCompleted ? 'true' : 'false'}">
+                    <span class="habit-toggle" aria-hidden="true">${isCompleted ? '✓' : ''}</span>
+                    <span>${this.getHabitActionText(habit, isCompleted)}</span>
                 </button>
                 <button class="btn btn-edit" onclick="app.toggleReminderEdit(${habit.id})">Edit</button>
                 <button class="btn btn-delete" onclick="app.deleteHabit(${habit.id})">Delete</button>
