@@ -116,7 +116,8 @@
     </aside>
     <div class="page-content">
     <div class="container">
-        <header>
+        <!-- App header: keep actions visible but visually lightweight to mimic native mobile apps -->
+        <header class="app-card app-header-card">
             <h1 id="headerTitle">📊 Habit Tracker</h1>
             <p class="subtitle" id="headerSubtitle">Build better habits, one day at a time</p>
             <div class="header-actions">
@@ -131,6 +132,12 @@
             </div>
         </header>
 
+        <!-- Primary capture card: single focused action area to reduce clutter -->
+        <section class="app-card">
+        <div class="section-heading">
+            <h2>Today’s habits</h2>
+            <p>Add one clear task at a time and keep momentum.</p>
+        </div>
         <div class="input-section">
             <input 
                 type="text" 
@@ -154,8 +161,18 @@
         <div class="speed-hint">
             <span>⚡ One-tap tracking: tap a card to mark done, swipe left to skip.</span>
         </div>
+        </section>
 
-        <div class="stats-section">
+        <!-- Focus strip: places today's routine in a prominent position above analytics -->
+        <section class="app-card today-focus-card">
+            <div>
+                <p class="today-focus-label">Focus for today</p>
+                <h3>Complete your daily routine first</h3>
+            </div>
+            <button class="quick-action-btn primary" onclick="document.getElementById('dailyView').scrollIntoView({ behavior: 'smooth' });">Open Today View</button>
+        </section>
+
+        <section class="stats-section app-card">
             <div class="stat-card">
                 <h3 data-i18n="totalHabits">Total Habits</h3>
                 <p id="totalHabits" class="stat-number">0</p>
@@ -172,8 +189,8 @@
                 <h3 data-i18n="weeklyAverage">Weekly Average</h3>
                 <p id="weeklyAverage" class="stat-number">0%</p>
             </div>
-        </div>
-        <div class="motivation-strip">
+        </section>
+        <section class="motivation-strip app-card">
             <div class="motivation-meta">
                 <div class="mini-metric">
                     <span class="mini-label">Daily streak</span>
@@ -189,10 +206,10 @@
                 </div>
             </div>
             <p id="motivationMessage" class="motivation-message">Small wins count. Complete one habit to build momentum.</p>
-        </div>
+        </section>
 
         <!-- Routine View Menu -->
-        <div class="routine-menu" id="routineMenu">
+        <div class="routine-menu app-card" id="routineMenu">
             <div class="exp-menu">
                 <div class="exp-meta">
                     <span id="expLabel" data-i18n="exp">EXP</span>
@@ -216,7 +233,7 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="charts-container" id="chartsSection">
+        <div class="charts-container secondary-info" id="chartsSection">
             <div class="chart-section">
                 <div class="chart-header">
                     <h2 data-i18n="progressAnalytics">Progress Analytics (Line Chart)</h2>
@@ -371,7 +388,7 @@
         </div>
 
                 <!-- Quick Actions Section -->
-        <div class="reminders-section">
+        <div class="reminders-section app-card">
             <h2 data-i18n="quickActions">⏰ Quick Actions</h2>
             <div class="quick-actions">
                 <button id="completeAllBtn" class="quick-action-btn primary" data-i18n="completeAll">✓ Complete All Today</button>
@@ -381,7 +398,7 @@
         </div>
 
         <!-- Search/Filter Section -->
-        <div class="filter-section">
+        <div class="filter-section app-card">
             <input 
                 type="text" 
                 id="searchInput" 
@@ -398,7 +415,7 @@
             </select>
         </div>
 
-        <div class="habits-section">
+        <div class="habits-section app-card">
             <h2 data-i18n="yourHabits">Your Habits</h2>
             <div id="habitsList" class="habits-list">
                 <p class="empty-message" data-i18n="noHabits">No habits yet. Add one to get started!</p>
@@ -406,7 +423,7 @@
         </div>
 
         <!-- Statistics Section -->
-        <div class="insights-section">
+        <div class="insights-section app-card secondary-info">
             <h2 data-i18n="insights">📈 Insights</h2>
             <div class="insights-grid">
                 <div class="insight-card">
