@@ -54,7 +54,7 @@ function updateNetworkStatusIndicator({ online = navigator.onLine, syncing = fal
     el.textContent = nextText;
 }
 
-const THEME_STORAGE_KEY = 'themePreference';
+
 
 function debounce(fn, delay = 200) {
     let timeoutId;
@@ -62,40 +62,6 @@ function debounce(fn, delay = 200) {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => fn(...args), delay);
     };
-}
-
-function getSavedThemePreference() {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem('theme');
-    if (stored === 'light' || stored === 'dark') {
-        return stored;
-    }
-    return null;
-}
-
-function detectSystemTheme() {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme, { persist = false } = {}) {
-    document.body.setAttribute('data-theme', theme);
-
-    const themeToggle = document.getElementById('themeToggle');
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const isDark = theme === 'dark';
-
-    if (themeToggle) {
-        themeToggle.checked = isDark;
-    }
-
-    if (themeToggleBtn) {
-        themeToggleBtn.setAttribute('aria-pressed', String(isDark));
-        themeToggleBtn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
-    }
-
-    if (persist) {
-        localStorage.setItem(THEME_STORAGE_KEY, theme);
-        localStorage.setItem('theme', theme);
-    }
 }
 
 function setupPwaInstallPrompt() {
@@ -152,35 +118,6 @@ function setupFullscreenMode() {
     updateFullscreenState();
 }
 
-function initializeTheme() {
-    const savedTheme = getSavedThemePreference();
-    const activeTheme = savedTheme || detectSystemTheme();
-    applyTheme(activeTheme);
-
-    const themeToggle = document.getElementById('themeToggle');
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-
-    if (themeToggle) {
-        themeToggle.addEventListener('change', (event) => {
-            applyTheme(event.target.checked ? 'dark' : 'light', { persist: true });
-        });
-    }
-
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = document.body.getAttribute('data-theme') || 'light';
-            applyTheme(currentTheme === 'dark' ? 'light' : 'dark', { persist: true });
-        });
-    }
-
-    if (!savedTheme && window.matchMedia) {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', (event) => {
-            applyTheme(event.matches ? 'dark' : 'light');
-        });
-    }
-}
-
 // Setup event listeners for settings
 document.addEventListener('DOMContentLoaded', () => {
     detectUserTimezone();
@@ -193,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         langManager.setLanguage(e.target.value);
     });
 
-    initializeTheme();
+    window.ThemeManager?.init();
     setupPwaInstallPrompt();
     setupFullscreenMode();
 
