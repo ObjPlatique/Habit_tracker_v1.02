@@ -2080,6 +2080,8 @@ body.sidebar-collapsed .page-content {
     flex-direction: column;
     gap: 16px;
     overflow-y: auto;
+    max-height: 100vh;
+    -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
     transition: transform 0.3s ease;
@@ -2699,6 +2701,7 @@ button.pressing,
 
     .quick-sidebar {
         width: min(84vw, 300px);
+        padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 }
 
